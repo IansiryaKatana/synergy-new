@@ -621,6 +621,26 @@ a {
 
 .services-reimagined-hero .about-page-hero-content h1 {
   color: #f7f8fa;
+  font-size: clamp(2rem, 5vw, 4.25rem) !important;
+}
+
+.services-hero-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12em;
+}
+
+.services-hero-title-primary {
+  display: block;
+  font-size: 1em;
+  line-height: 1;
+}
+
+.services-hero-title-secondary {
+  display: block;
+  font-size: 0.72em;
+  line-height: 1.04;
+  font-weight: 300 !important;
 }
 
 .services-problem-section {

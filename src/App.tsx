@@ -1512,7 +1512,10 @@ function App() {
           </aside>
           <div className="about-page-hero-content">
             <p className="eyebrow">{siteContent.branding.hero_eyebrow}</p>
-            <h1>Experience That Builds Outcomes.</h1>
+            <h1 className="services-hero-title">
+              <span className="services-hero-title-primary">Experience</span>
+              <span className="services-hero-title-secondary">That Builds Outcomes.</span>
+            </h1>
             <p className="subtitle">
               {siteContent.branding.hero_subtitle}
             </p>
@@ -2326,7 +2329,10 @@ function App() {
           </aside>
           <div className="about-page-hero-content">
             <p className="eyebrow">{siteContent.branding.hero_eyebrow}</p>
-            <h1>Experience That Builds Outcomes.</h1>
+            <h1 className="services-hero-title">
+              <span className="services-hero-title-primary">Experience</span>
+              <span className="services-hero-title-secondary">That Builds Outcomes.</span>
+            </h1>
             <p className="subtitle">
               {siteContent.branding.hero_subtitle}
             </p>
