@@ -107,7 +107,7 @@ const JOB_FIELD_OPTIONS: Record<string, string[]> = {
 const RECORD_UPLOAD_FIELDS: Record<EntityType, string[]> = {
   team_members: ['avatar_url'],
   services: ['image_url'],
-  insights: ['image_url'],
+  insights: ['image_url', 'hero_image_url'],
   job_posts: [],
   media_items: ['value', 'file_url'],
 }
@@ -1001,7 +1001,7 @@ function defaultForm(entity: EntityType): Record<string, unknown> {
   const base = { id: '', sort_order: 1, is_active: true }
   if (entity === 'team_members') return { ...base, initials: '', name: '', role: '', bio: '', email: '', number: '', avatar_url: '' }
   if (entity === 'services') return { ...base, title: '', description: '', quote: '', image_url: '', detail_sections: '[]' }
-  if (entity === 'insights') return { ...base, chip: '', date_label: '', title: '', alt_style: false, image_url: '' }
+  if (entity === 'insights') return { ...base, chip: '', date_label: '', title: '', alt_style: false, image_url: '', hero_image_url: '' }
   if (entity === 'job_posts') return { ...base, title: '', department: '', summary: '', job_description_html: '', notification_email: '', location_label: '', employment_type: '', workplace_type: '', apply_url: '' }
   return { ...base, kind: 'asset', label: '', value: '', link_url: '', file_path: '', file_url: '' }
 }
@@ -1055,7 +1055,7 @@ function renderFields(
   const fields: Record<EntityType, string[]> = {
     team_members: ['avatar_url', 'initials', 'name', 'role', 'bio', 'email', 'number', 'sort_order', 'is_active'],
     services: ['image_url', 'title', 'description', 'sort_order', 'is_active'],
-    insights: ['image_url', 'chip', 'date_label', 'title', 'alt_style', 'sort_order', 'is_active'],
+    insights: ['image_url', 'hero_image_url', 'chip', 'date_label', 'title', 'alt_style', 'sort_order', 'is_active'],
     job_posts: ['title', 'department', 'summary', 'job_description_html', 'notification_email', 'location_label', 'employment_type', 'workplace_type', 'apply_url', 'sort_order', 'is_active'],
     media_items: ['value', 'link_url', 'kind', 'label', 'file_path', 'file_url', 'sort_order', 'is_active'],
   }
@@ -1442,6 +1442,7 @@ function formatFieldLabel(field: string) {
     link_url: 'Link URL',
     avatar_url: 'Avatar URL',
     image_url: 'Image URL',
+    hero_image_url: 'Hero Image URL',
   }
   if (overrides[field]) return overrides[field]
   return field

@@ -268,7 +268,6 @@ function App() {
   const [sixthProgress, setSixthProgress] = useState(0)
   const [footerProgress, setFooterProgress] = useState(0)
   const [showReturnHeader, setShowReturnHeader] = useState(false)
-  const [showProjectsHeader, setShowProjectsHeader] = useState(true)
   const [insightsIndex, setInsightsIndex] = useState(0)
   const [isMobileViewport, setIsMobileViewport] = useState(
     typeof window !== 'undefined' ? window.innerWidth <= 680 : false,
@@ -439,6 +438,14 @@ function App() {
     () => featuredInsights.slice(0, maxInsightsCards),
     [featuredInsights, maxInsightsCards],
   )
+  const projectHeroItems = useMemo(
+    () =>
+      siteContent.insights.length > 0
+        ? siteContent.insights
+        : contentApi.fallback.insights,
+    [siteContent.insights],
+  )
+  const activeProjectHero = projectHeroItems[Math.min(insightsIndex, Math.max(0, projectHeroItems.length - 1))] ?? null
   const homepageFeaturedServices = useMemo(() => serviceCards.slice(0, 3), [serviceCards])
   const homepageServicesHref = serviceCards[0]?.href ?? '/services/project-management'
   const servicesPageCards = useMemo(
@@ -475,7 +482,6 @@ function App() {
       const nextFooterProgress = computeFooterProgress(footerSceneRef.current)
       const scrollingUp = currentScrollY < lastScrollYRef.current - 4
       const scrollingDown = currentScrollY > lastScrollYRef.current + 4
-      const isProjectsPath = window.location.pathname.toLowerCase().startsWith('/projects')
       const heroFullyPassed = nextHeroProgress > 0.98
       const returnHeaderEligible = currentScrollY > window.innerHeight + 40
       const footerActive = nextFooterProgress > 0.02
@@ -487,13 +493,6 @@ function App() {
         return previous
       })
 
-      setShowProjectsHeader((previous) => {
-        if (!isProjectsPath) return true
-        if (isMobileMenuOpen || currentScrollY <= 12) return true
-        if (scrollingUp) return true
-        if (scrollingDown) return false
-        return previous
-      })
       lastScrollYRef.current = currentScrollY
 
       setHeroProgress(nextHeroProgress)
@@ -541,6 +540,12 @@ function App() {
       return Math.min(previous, visibleInsights.length - 1)
     })
   }, [visibleInsights.length])
+  useEffect(() => {
+    setInsightsIndex((previous) => {
+      if (projectHeroItems.length === 0) return 0
+      return Math.min(previous, projectHeroItems.length - 1)
+    })
+  }, [projectHeroItems.length])
 
   useEffect(() => {
     setAboutServicesIndex((previous) => {
@@ -1253,14 +1258,36 @@ function App() {
   )
 
   if (isProjectsRoute) {
+    const activeProjectHeroBackground = activeProjectHero?.hero_image_url?.trim()
+      || activeProjectHero?.image_url?.trim()
+      || fallbackServiceCardImage
+    const activeProjectStatus = activeProjectHero?.chip?.replace(/^Status:\s*/i, '').trim() ?? ''
+    const activeProjectLocation = activeProjectHero?.date_label?.replace(/^Location:\s*/i, '').trim() ?? ''
     return (
       <>
         <main className="projects-page-shell">
-          <section className="projects-page-hero">
-            <header className={`top-nav service-page-header projects-page-header ${showProjectsHeader ? '' : 'scroll-hidden'}`}>
+          <section className="about-page-hero services-reimagined-hero projects-page-hero">
+            <div className="about-page-hero-visual-frame" aria-hidden="true">
+              <div
+                className="about-page-hero-media projects-page-hero-media"
+                style={{
+                  backgroundImage: `url("${activeProjectHeroBackground}")`,
+                }}
+              />
+            </div>
+            <header className="top-nav about-page-header">
               <div className="nav-bubble">
                 <a className="brand" href="/">
-                  <img src="/SYNERGY logo.png" alt={siteContent.branding.company_name} className="brand-wordmark-image" />
+                  <img
+                    src="/syngergy-logo.png"
+                    alt={siteContent.branding.company_name}
+                    className="brand-wordmark-image about-brand-desktop"
+                  />
+                  <img
+                    src="/SYNERGY logo.png"
+                    alt={siteContent.branding.company_name}
+                    className="brand-wordmark-image about-brand-mobile"
+                  />
                 </a>
                 <nav className="menu">
                   <a href="/" className={navClass('#home')}>Home</a>
@@ -1280,34 +1307,13 @@ function App() {
                   {isMobileMenuOpen ? 'Close' : 'Menu'}
                 </button>
               </div>
-              <a
-                className="call-btn service-back-btn"
-                href="/contact-us"
-                onClick={(event) => {
-                  event.preventDefault()
-                  navigateToContact()
-                }}
-              >
+              <button className="call-btn" onClick={navigateToContact}>
                 Get in touch
                 <span className="call-btn-icon" aria-hidden="true">
                   <UpRightArrowIcon />
                 </span>
-              </a>
-            </header>
-            <div className="projects-mobile-menu-bubble">
-              <a className="brand" href="/">
-                <img src="/SYNERGY logo.png" alt={siteContent.branding.company_name} className="brand-wordmark-image" />
-              </a>
-              <button
-                className="menu-toggle"
-                onClick={() => setIsMobileMenuOpen((open) => !open)}
-                aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
-                aria-expanded={isMobileMenuOpen}
-                aria-controls="mobile-nav-drawer"
-              >
-                {isMobileMenuOpen ? 'Close' : 'Menu'}
               </button>
-            </div>
+            </header>
             <div
               className={`mobile-menu-overlay ${isMobileMenuOpen ? 'open' : ''}`}
               onClick={() => setIsMobileMenuOpen(false)}
@@ -1315,7 +1321,7 @@ function App() {
             />
             <aside
               id="mobile-nav-drawer"
-              className={`mobile-menu-drawer services-mobile-menu-drawer ${isMobileMenuOpen ? 'open' : ''}`}
+              className={`mobile-menu-drawer ${isMobileMenuOpen ? 'open' : ''}`}
               aria-hidden={!isMobileMenuOpen}
             >
               <div className="mobile-menu-header">
@@ -1363,85 +1369,40 @@ function App() {
                 Get in touch
               </button>
             </aside>
-          </section>
-          <div className="projects-page-content">
-            <section className="insights-scene projects-page-section">
-              <div className="insights-sticky">
-                <div className="insights-inner">
-                <aside className="insights-lead">
-                  <div className="insights-title-row">
-                    <h2>{siteContent.branding.insights_title}</h2>
-                    <div className="section-nav-arrows" aria-label="Projects navigation">
+            <div className="about-page-hero-content projects-page-hero-content">
+              <div className="projects-page-hero-copy">
+                <p className="eyebrow">Project info</p>
+                <h1>{activeProjectHero ? formatProjectTitle(activeProjectHero.title) : 'Experience That Builds Outcomes.'}</h1>
+                <p className="subtitle">{activeProjectStatus || 'Status details will appear here.'}</p>
+                <p className="subtitle projects-page-hero-location">
+                  {activeProjectLocation || 'Location details will appear here.'}
+                </p>
+              </div>
+              <div className="projects-page-hero-thumbnails-wrap">
+                <div className="projects-page-hero-thumbnails" role="tablist" aria-label="Project hero selector">
+                  {projectHeroItems.map((project, index) => {
+                    const thumbSrc = project.image_url?.trim() || project.hero_image_url?.trim() || ''
+                    const isActive = index === Math.min(insightsIndex, Math.max(0, projectHeroItems.length - 1))
+                    const projectTitleText = String(project.title ?? 'Project')
+                    return (
                       <button
                         type="button"
-                        className="section-nav-arrow"
-                        onClick={() => setInsightsIndex((index) => Math.max(0, index - 1))}
-                        disabled={insightsIndex <= 0}
-                        aria-label="Previous project card"
+                        key={`project-hero-thumb-${project.id}`}
+                        className={`projects-page-hero-thumbnail ${isActive ? 'active' : ''}`}
+                        onClick={() => setInsightsIndex(index)}
+                        role="tab"
+                        aria-selected={isActive}
+                        aria-label={`Show ${projectTitleText}`}
                       >
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M15 6l-6 6 6 6" />
-                        </svg>
+                        {thumbSrc ? <img src={thumbSrc} alt={projectTitleText} loading="lazy" /> : null}
+                        <span>{formatProjectTitle(project.title)}</span>
                       </button>
-                      <button
-                        type="button"
-                        className="section-nav-arrow"
-                        onClick={() => setInsightsIndex((index) => Math.min(visibleInsights.length - 1, index + 1))}
-                        disabled={insightsIndex >= visibleInsights.length - 1}
-                        aria-label="Next project card"
-                      >
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M9 6l6 6-6 6" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                  <p>{siteContent.branding.insights_description}</p>
-                  <button
-                    className="insights-view-all"
-                    onClick={() => {
-                      navigateToContact()
-                    }}
-                  >
-                    Lets Partner on a Project
-                    <span className="cta-arrow-icon" aria-hidden="true">
-                      <UpRightArrowIcon />
-                    </span>
-                  </button>
-                </aside>
-
-                <div className="insights-cards-viewport">
-                  <div
-                    className="insights-cards-track"
-                    style={isMobileViewport ? { transform: `translateX(-${insightsIndex * 100}%)` } : undefined}
-                  >
-                  {visibleInsights.map((insight) => (
-                  <article
-                    className={`insight-card ${insight.alt_style ? 'insight-card-alt' : ''} ${
-                      insight.image_url ? 'has-image' : ''
-                    }`}
-                    style={
-                      insight.image_url
-                        ? ({ '--insight-image-url': `url("${insight.image_url}")` } as CSSProperties)
-                        : undefined
-                    }
-                    key={`project-page-${insight.id}`}
-                  >
-                    <p className={`insight-chip ${getStatusBadgeClass(insight.chip)}`}>
-                      {insight.chip.replace(/^Status:\s*/i, '')}
-                    </p>
-                    <p className="insight-date insight-location-badge">
-                      {insight.date_label.replace(/^Location:\s*/i, '')}
-                    </p>
-                    <h3>{formatProjectTitle(insight.title)}</h3>
-                  </article>
-                  ))}
-                  </div>
+                    )
+                  })}
                 </div>
               </div>
-              </div>
-            </section>
-          </div>
+            </div>
+          </section>
         </main>
         {sharedFooterSection}
       </>
