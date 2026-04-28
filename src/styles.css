@@ -3978,10 +3978,7 @@ h1 {
 .footer-scene {
   position: relative;
   min-height: 100vh;
-  background:
-    radial-gradient(120% 100% at 10% 0%, rgba(33, 76, 124, 0.28), transparent 62%),
-    radial-gradient(100% 80% at 90% 10%, rgba(17, 90, 166, 0.2), transparent 60%),
-    linear-gradient(160deg, #060b17 0%, #0c1528 100%);
+  background: var(--brand-blue);
   padding: 3rem 1rem 1.2rem;
   display: grid;
   align-items: center;
@@ -4010,6 +4007,11 @@ h1 {
   .footer-reference-links-card,
   .footer-reference-bottom {
     margin: 0;
+  }
+
+  .footer-reference-links-card {
+    padding-top: 50px;
+    padding-bottom: 50px;
   }
 }
 
@@ -4096,6 +4098,13 @@ h1 {
   display: grid;
   grid-template-columns: 1.6fr 1fr 1fr;
   gap: 1rem;
+}
+
+@media (min-width: 901px) {
+  .footer-reference-links-card {
+    margin-top: -20px;
+    padding: 30px 0.9rem;
+  }
 }
 
 .footer-reference-col {
