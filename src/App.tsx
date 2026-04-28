@@ -2338,12 +2338,21 @@ function App() {
             <p className="services-problem-kicker">The problem we solve</p>
             <h2 className="services-problem-reveal">
               <p className="services-problem-text">
-                Most companies get stuck not because they lack talent, but because they lack direction. When priorities shift weekly and decisions are reactive, teams lose alignment, energy, and momentum.
+                <span className="services-problem-hook">
+                  Most companies get stuck not because they lack talent, but
+                </span>{' '}
+                <span className="services-problem-support">
+                  because they lack direction. When priorities shift weekly and decisions are reactive,
+                  teams lose alignment, energy, and momentum.
+                </span>
               </p>
             </h2>
             <h2 className="services-problem-reveal">
               <p className="services-problem-text">
-                Our Business Strategy service replaces uncertainty with clarity - giving you a plan and a confident path forward.
+                <span className="services-problem-support">
+                  Our Business Strategy service replaces uncertainty with clarity - giving you a plan and a
+                  confident path forward.
+                </span>
               </p>
             </h2>
           </div>
