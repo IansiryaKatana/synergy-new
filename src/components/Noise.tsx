@@ -1,5 +1,4 @@
-import { useEffect, useRef } from 'react'
-import { Noise as NoiseGenerator } from 'noisejs'
+import { useEffect, useMemo, useState } from 'react'
 
 type NoiseProps = {
   patternSize?: number
@@ -7,6 +6,27 @@ type NoiseProps = {
   patternScaleY?: number
   patternRefreshInterval?: number
   patternAlpha?: number
+  className?: string
+}
+
+function createNoiseDataUrl(size: number, alpha: number) {
+  if (typeof document === 'undefined') return ''
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const context = canvas.getContext('2d')
+  if (!context) return ''
+
+  const image = context.createImageData(size, size)
+  for (let index = 0; index < image.data.length; index += 4) {
+    const value = Math.floor(Math.random() * 255)
+    image.data[index] = value
+    image.data[index + 1] = value
+    image.data[index + 2] = value
+    image.data[index + 3] = alpha
+  }
+  context.putImageData(image, 0, 0)
+  return canvas.toDataURL('image/png')
 }
 
 export default function Noise({
@@ -15,59 +35,32 @@ export default function Noise({
   patternScaleY = 2,
   patternRefreshInterval = 2,
   patternAlpha = 15,
+  className = '',
 }: NoiseProps) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const alpha = Math.max(0, Math.min(255, Math.round((patternAlpha / 100) * 255)))
+  const [patternUrl, setPatternUrl] = useState('')
+  const backgroundSize = useMemo(
+    () => `${Math.max(1, patternSize / Math.max(0.1, patternScaleX))}px ${Math.max(1, patternSize / Math.max(0.1, patternScaleY))}px`,
+    [patternScaleX, patternScaleY, patternSize],
+  )
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const context = canvas.getContext('2d')
-    if (!context) return
+    setPatternUrl(createNoiseDataUrl(patternSize, alpha))
+    const refreshMs = Math.max(250, Math.round(patternRefreshInterval * 1000))
+    const timer = window.setInterval(() => {
+      setPatternUrl(createNoiseDataUrl(patternSize, alpha))
+    }, refreshMs)
+    return () => window.clearInterval(timer)
+  }, [alpha, patternRefreshInterval, patternSize])
 
-    const noise = new NoiseGenerator(Math.random())
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const alpha = Math.max(0, Math.min(255, Math.round((patternAlpha / 100) * 255)))
-    const width = Math.max(16, Math.round(patternSize * patternScaleX))
-    const height = Math.max(16, Math.round(patternSize * patternScaleY))
-
-    canvas.width = width
-    canvas.height = height
-
-    let raf = 0
-    let frame = 0
-
-    const paint = () => {
-      const imageData = context.createImageData(width, height)
-      const data = imageData.data
-      const t = frame * 0.012
-
-      for (let y = 0; y < height; y += 1) {
-        for (let x = 0; x < width; x += 1) {
-          const idx = (y * width + x) * 4
-          const value = (noise.perlin3(x / 34, y / 34, t) + 1) * 0.5
-          const color = Math.round(value * 255)
-          data[idx] = color
-          data[idx + 1] = color
-          data[idx + 2] = color
-          data[idx + 3] = alpha
-        }
-      }
-
-      context.putImageData(imageData, 0, 0)
-      frame += 1
-    }
-
-    const tick = () => {
-      if (reducedMotion || frame % patternRefreshInterval === 0) {
-        paint()
-      }
-      raf = window.requestAnimationFrame(tick)
-    }
-
-    paint()
-    raf = window.requestAnimationFrame(tick)
-    return () => window.cancelAnimationFrame(raf)
-  }, [patternAlpha, patternRefreshInterval, patternScaleX, patternScaleY, patternSize])
-
-  return <canvas ref={canvasRef} className="contact-noise-canvas" aria-hidden="true" />
+  return (
+    <div
+      aria-hidden="true"
+      className={className}
+      style={{
+        backgroundImage: patternUrl ? `url("${patternUrl}")` : undefined,
+        backgroundSize,
+      }}
+    />
+  )
 }

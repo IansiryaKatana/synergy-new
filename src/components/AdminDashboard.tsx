@@ -83,7 +83,7 @@ const BRANDING_FIELD_GROUPS: Array<{ id: BrandingTab; label: string; fields: str
   {
     id: 'media',
     label: 'Backgrounds',
-    fields: ['homepage_team_background_url', 'about_hero_background_url', 'contact_hero_background_url'],
+    fields: ['homepage_team_background_url', 'services_hero_background_url', 'about_hero_background_url', 'contact_hero_background_url'],
   },
 ]
 
@@ -92,6 +92,7 @@ const BRANDING_MEDIA_FIELDS = new Set([
   'favicon_url',
   'homepage_hero_video_url',
   'homepage_team_background_url',
+  'services_hero_background_url',
   'about_hero_background_url',
   'contact_hero_background_url',
 ])
@@ -580,7 +581,7 @@ export function AdminDashboard(props: AdminProps) {
                         <label className="admin-inline-upload" title="Upload file">
                           <input
                             type="file"
-                            accept={field === 'homepage_hero_video_url' ? 'video/*' : 'image/*'}
+                            accept={field === 'homepage_hero_video_url' ? 'image/*,video/*' : 'image/*'}
                             onChange={(event) => {
                               const file = event.target.files?.[0]
                               if (!file) return
@@ -999,7 +1000,7 @@ export function AdminDashboard(props: AdminProps) {
 function defaultForm(entity: EntityType): Record<string, unknown> {
   const base = { id: '', sort_order: 1, is_active: true }
   if (entity === 'team_members') return { ...base, initials: '', name: '', role: '', bio: '', email: '', number: '', avatar_url: '' }
-  if (entity === 'services') return { ...base, tag: '', title: '', description: '', quote: '', image_url: '', detail_sections: '[]' }
+  if (entity === 'services') return { ...base, title: '', description: '', quote: '', image_url: '', detail_sections: '[]' }
   if (entity === 'insights') return { ...base, chip: '', date_label: '', title: '', alt_style: false, image_url: '' }
   if (entity === 'job_posts') return { ...base, title: '', department: '', summary: '', job_description_html: '', notification_email: '', location_label: '', employment_type: '', workplace_type: '', apply_url: '' }
   return { ...base, kind: 'asset', label: '', value: '', link_url: '', file_path: '', file_url: '' }
@@ -1018,6 +1019,10 @@ function normalizePayload(entity: EntityType, form: Record<string, unknown>) {
   }
   if (entity === 'services') {
     payload.detail_sections = sanitizeDetailSections(payload.detail_sections)
+    const title = String(payload.title ?? '').trim()
+    const description = String(payload.description ?? '').trim()
+    if (!String(payload.tag ?? '').trim()) payload.tag = title || 'Service'
+    if (!String(payload.quote ?? '').trim()) payload.quote = description || title || 'Service detail'
   }
   return payload
 }
@@ -1025,7 +1030,7 @@ function normalizePayload(entity: EntityType, form: Record<string, unknown>) {
 function validatePayload(entity: EntityType, payload: Record<string, unknown>) {
   const requiredMap: Record<EntityType, string[]> = {
     team_members: ['id', 'name', 'role', 'email'],
-    services: ['id', 'tag', 'title', 'description'],
+    services: ['id', 'title', 'description'],
     insights: ['id', 'chip', 'date_label', 'title'],
     job_posts: ['id', 'title', 'department', 'summary'],
     media_items: ['id', 'kind', 'label', 'value'],
@@ -1036,7 +1041,7 @@ function validatePayload(entity: EntityType, payload: Record<string, unknown>) {
     payload.detail_sections !== undefined &&
     !Array.isArray(payload.detail_sections)
   ) {
-    return 'detail_sections must be a JSON array of { title, points[] } objects.'
+    return 'detail_sections must be a JSON array of { title, description } objects.'
   }
   return missing.length > 0 ? `Missing required fields: ${missing.join(', ')}` : ''
 }
@@ -1049,7 +1054,7 @@ function renderFields(
 ) {
   const fields: Record<EntityType, string[]> = {
     team_members: ['avatar_url', 'initials', 'name', 'role', 'bio', 'email', 'number', 'sort_order', 'is_active'],
-    services: ['image_url', 'tag', 'title', 'description', 'quote', 'sort_order', 'is_active'],
+    services: ['image_url', 'title', 'description', 'sort_order', 'is_active'],
     insights: ['image_url', 'chip', 'date_label', 'title', 'alt_style', 'sort_order', 'is_active'],
     job_posts: ['title', 'department', 'summary', 'job_description_html', 'notification_email', 'location_label', 'employment_type', 'workplace_type', 'apply_url', 'sort_order', 'is_active'],
     media_items: ['value', 'link_url', 'kind', 'label', 'file_path', 'file_url', 'sort_order', 'is_active'],
@@ -1179,74 +1184,59 @@ function sanitizeDetailSections(
   input: unknown,
 ): Array<{
   title: string
-  points: string[]
+  description: string
 }> {
   if (!Array.isArray(input)) return []
   return input
     .map((item) => {
       if (!item || typeof item !== 'object') return null
-      const section = item as { title?: unknown; points?: unknown }
+      const section = item as { title?: unknown; description?: unknown; points?: unknown }
       const title = typeof section.title === 'string' ? section.title : ''
-      const points = Array.isArray(section.points)
-        ? section.points.filter((point): point is string => typeof point === 'string')
-        : []
-      return { title, points }
+      const description = typeof section.description === 'string'
+        ? section.description
+        : Array.isArray(section.points)
+          ? section.points.filter((point): point is string => typeof point === 'string').join(' ')
+          : ''
+      return { title, description }
     })
-    .filter((x): x is { title: string; points: string[] } => x !== null)
+    .filter((x): x is { title: string; description: string } => x !== null)
 }
 
 function getDefaultServiceDetailSections(
   row: Record<string, unknown>,
 ): Array<{
   title: string
-  points: string[]
+  description: string
 }> {
   const id = String(row.id ?? '').toLowerCase()
-  const tag = String(row.tag ?? '').toLowerCase()
   const title = String(row.title ?? '').toLowerCase()
 
-  if (id === 'service-1' || tag.includes('finance') || title.includes('finance')) {
+  if (id === 'service-1' || title.includes('finance')) {
     return [
       {
-        title: '1. Financial Leadership & Strategy',
-        points: [
-          'Lead the overall UAE finance function aligned with group business objectives.',
-          'Develop and execute long-term financial strategy to support growth and profitability in the UAE market.',
-          'Act as strategic financial advisor to Directors and Board members.',
-          'Drive financial planning, budgeting, and forecasting processes.',
-        ],
+        title: 'Financial Strategy & Planning',
+        description:
+          'We align financial direction with business goals through structured planning, forecasting, and budgeting. This ensures resources are allocated efficiently, supporting sustainable growth, profitability, and confident decision-making across UAE and wider GCC operations.',
       },
       {
-        title: '2. Board Reporting & Management Information',
-        points: [
-          'Prepare and present monthly and quarterly financial reports to the Board.',
-          'Deliver detailed MIS reports including profitability, margin analysis, and KPI performance.',
-          'Provide financial insights and variance analysis with actionable recommendations.',
-          'Support strategic decision-making with scenario planning and financial modelling.',
-        ],
+        title: 'Board Reporting & Insights',
+        description:
+          'We deliver clear, data-driven financial reporting including monthly statements, KPI tracking, and variance analysis. Leadership gains actionable insights and scenario planning to make informed strategic decisions backed by accurate financial intelligence.',
       },
     ]
   }
 
-  if (id === 'service-2' || tag.includes('compliance') || title.includes('compliance')) {
+  if (id === 'service-2' || title.includes('compliance')) {
     return [
       {
-        title: '1. Regulatory Strategy & Planning',
-        points: [
-          'Develop regulatory pathways for new products.',
-          'Advise leadership on approval requirements, timelines, and risks.',
-          'Identify the most efficient route to market (e.g., MHRA, EUCEG, Trading Standards).',
-          'Support expansion into new countries by assessing regulatory requirements.',
-        ],
+        title: 'Regulatory Strategy & Market Entry',
+        description:
+          'We define clear regulatory pathways for products and expansion by assessing approval requirements, risks, and timelines. This ensures efficient entry into markets while minimizing delays and maintaining full compliance with regional standards.',
       },
       {
-        title: '2. Regulatory Submissions & Approvals',
-        points: [
-          'Prepare and submit applications to regulatory authorities.',
-          'Manage product registrations, renewals, and amendments.',
-          'Respond to agency questions or deficiency letters.',
-          'Maintain regulatory documentation and records.',
-        ],
+        title: 'Submissions & Authority Management',
+        description:
+          'We handle all regulatory submissions, approvals, renewals, and communications with governing bodies. Documentation is maintained accurately, ensuring products remain authorized and aligned with all applicable regulatory requirements.',
       },
     ]
   }
@@ -1254,41 +1244,29 @@ function getDefaultServiceDetailSections(
   if (id === 'service-3' || title.includes('human resources') || title.includes('hr')) {
     return [
       {
-        title: '1. Talent Acquisition & Workforce Planning',
-        points: [
-          'Plan workforce requirements aligned with business growth in UAE and UK.',
-          'Draft job descriptions tailored to market requirements and legal standards.',
-          'Screen, shortlist, and interview candidates in compliance with UAE and UK rules.',
-        ],
+        title: 'Talent Acquisition & Workforce Planning',
+        description:
+          'We attract and recruit top talent across UAE and UK markets through structured hiring, compliant contracts, and effective onboarding. Workforce planning ensures the organization scales efficiently with the right people in place.',
       },
       {
-        title: '2. Employee Lifecycle Management',
-        points: [
-          'Prepare contracts, promotions, transfers, and exit documentation.',
-          'Monitor probation periods in line with local regulations.',
-          'Manage resignations and final settlements according to statutory requirements.',
-        ],
+        title: 'Employee Lifecycle Management',
+        description:
+          'We manage the full employee journey including onboarding, performance tracking, promotions, and exits. Processes are structured, transparent, and compliant, ensuring consistency and clarity across both UAE and UK operations.',
       },
     ]
   }
 
-  if (id === 'service-4' || tag.includes('integrated') || title.includes('project management')) {
+  if (id === 'service-4' || title.includes('project management')) {
     return [
       {
-        title: '1. Department Coverage',
-        points: [
-          'Finance leadership and UAE statutory oversight.',
-          'Regulatory strategy, approvals, and compliance operations.',
-          'UAE and UK HR lifecycle, payroll, legal compliance, and workforce planning.',
-        ],
+        title: 'Project Planning & Strategy',
+        description:
+          'We define clear project scopes, timelines, and resource plans aligned with business objectives. This ensures every project begins with structured direction, minimizing risks and setting a strong foundation for successful delivery.',
       },
       {
-        title: '2. Project Management Integration',
-        points: [
-          'Cross-functional planning that aligns departments, milestones, and reporting.',
-          'Program tracking with clear ownership, escalations, and performance indicators.',
-          'Unified governance so every team action supports business outcomes.',
-        ],
+        title: 'Execution & Coordination',
+        description:
+          'We manage day-to-day project execution, coordinating teams, stakeholders, and resources. Communication remains clear and consistent, ensuring all parties stay aligned and projects progress efficiently without unnecessary delays.',
       },
     ]
   }
@@ -1302,14 +1280,14 @@ function renderServiceDetailsEditor(
 ) {
   const sections = sanitizeDetailSections(formValues.detail_sections)
 
-  const updateSections = (next: Array<{ title: string; points: string[] }>) => {
+  const updateSections = (next: Array<{ title: string; description: string }>) => {
     setFormValues((prev) => ({ ...prev, detail_sections: next }))
   }
 
   return (
     <div className="admin-service-details-editor">
       <p className="admin-service-details-help">
-        Build service detail cards row-by-row. Each section becomes one horizontal card on the service details page.
+        Build accordion rows. Each row uses an accordion title and description.
       </p>
       {sections.map((section, sectionIndex) => (
         <article key={`section-${sectionIndex}`} className="admin-service-detail-section-card">
@@ -1326,48 +1304,21 @@ function renderServiceDetailsEditor(
             />
           </label>
 
-          <div className="admin-service-points-list">
-            {section.points.map((point, pointIndex) => (
-              <div key={`point-${sectionIndex}-${pointIndex}`} className="admin-service-point-row">
-                <input
-                  placeholder={`Bullet point ${pointIndex + 1}`}
-                  value={point}
-                  onChange={(event) => {
-                    const next = [...sections]
-                    const nextPoints = [...next[sectionIndex].points]
-                    nextPoints[pointIndex] = event.target.value
-                    next[sectionIndex] = { ...next[sectionIndex], points: nextPoints }
-                    updateSections(next)
-                  }}
-                />
-                <button
-                  type="button"
-                  className="admin-btn admin-btn-danger"
-                  onClick={() => {
-                    const next = [...sections]
-                    const nextPoints = next[sectionIndex].points.filter((_, idx) => idx !== pointIndex)
-                    next[sectionIndex] = { ...next[sectionIndex], points: nextPoints }
-                    updateSections(next)
-                  }}
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-          </div>
-
-          <div className="admin-service-detail-actions">
-            <button
-              type="button"
-              className="admin-btn"
-              onClick={() => {
+          <label className="admin-service-field">
+            <span>Accordion description</span>
+            <textarea
+              value={section.description}
+              rows={5}
+              placeholder="Add accordion description"
+              onChange={(event) => {
                 const next = [...sections]
-                next[sectionIndex] = { ...next[sectionIndex], points: [...next[sectionIndex].points, ''] }
+                next[sectionIndex] = { ...next[sectionIndex], description: event.target.value }
                 updateSections(next)
               }}
-            >
-              Add point
-            </button>
+            />
+          </label>
+
+          <div className="admin-service-detail-actions">
             <button
               type="button"
               className="admin-btn admin-btn-danger"
@@ -1385,10 +1336,10 @@ function renderServiceDetailsEditor(
         type="button"
         className="admin-btn admin-btn-primary"
         onClick={() => {
-          updateSections([...sections, { title: '', points: [''] }])
+          updateSections([...sections, { title: '', description: '' }])
         }}
       >
-        Add section
+        Add accordion row
       </button>
     </div>
   )
@@ -1463,7 +1414,6 @@ function buildRecordId(entity: EntityType, payload: Record<string, unknown>) {
     String(payload.title ?? '').trim() ||
     String(payload.name ?? '').trim() ||
     String(payload.label ?? '').trim() ||
-    String(payload.tag ?? '').trim() ||
     prefixMap[entity]
   const slug = source
     .toLowerCase()

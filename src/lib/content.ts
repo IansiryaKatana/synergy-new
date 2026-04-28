@@ -15,13 +15,13 @@ export type TeamMember = {
 
 export type ServiceItem = {
   id: string
-  tag: string
+  tag?: string
   title: string
   description: string
-  quote: string
+  quote?: string
   detail_sections?: Array<{
     title: string
-    points: string[]
+    description: string
   }>
   image_url?: string | null
   sort_order: number
@@ -114,6 +114,7 @@ export type BrandingContent = {
   favicon_url?: string | null
   homepage_hero_video_url?: string | null
   homepage_team_background_url?: string | null
+  services_hero_background_url?: string | null
   about_hero_background_url?: string | null
   contact_hero_background_url?: string | null
 }
@@ -147,11 +148,12 @@ const fallback: SiteContent = {
     footer_pitch:
       "Stalled revenue, leaky funnels, stretched leadership. Whatever is holding you back, let's solve it.",
     footer_wordmark: 'synergy',
-    footer_email: 'Hello@synergypm.ae',
+    footer_email: 'Info@synergypm.ae',
     logo_url: null,
     favicon_url: null,
     homepage_hero_video_url: null,
     homepage_team_background_url: null,
+    services_hero_background_url: null,
     about_hero_background_url: null,
     contact_hero_background_url: null,
   },
@@ -191,28 +193,28 @@ const fallback: SiteContent = {
   services: [
     {
       id: 'service-1',
-      tag: '01 - Finance',
-      title: 'Finance Head / UAE Finance Controller',
-      description: 'Financial leadership, board reporting, UAE statutory compliance, and process transformation.',
-      quote: '"Finance strategy aligned to UAE growth and governance."',
+      title: 'Finance Department',
+      description: 'A Structured Approach to Financial Control & Growth',
       detail_sections: [
         {
-          title: '1. Financial Leadership & Strategy',
-          points: [
-            'Lead the overall UAE finance function aligned with group business objectives.',
-            'Develop and execute long-term financial strategy to support growth and profitability in the UAE market.',
-            'Act as strategic financial advisor to Directors and Board members.',
-            'Drive financial planning, budgeting, and forecasting processes.',
-          ],
+          title: 'Financial Strategy & Planning',
+          description:
+            'We align financial direction with business goals through structured planning, forecasting, and budgeting. This ensures resources are allocated efficiently, supporting sustainable growth, profitability, and confident decision-making across UAE and wider GCC operations.',
         },
         {
-          title: '2. Board Reporting & Management Information',
-          points: [
-            'Prepare and present monthly and quarterly financial reports to the Board.',
-            'Deliver detailed MIS reports including profitability, margin analysis, and KPI performance.',
-            'Provide financial insights and variance analysis with actionable recommendations.',
-            'Support strategic decision-making with scenario planning and financial modelling.',
-          ],
+          title: 'Board Reporting & Insights',
+          description:
+            'We deliver clear, data-driven financial reporting including monthly statements, KPI tracking, and variance analysis. Leadership gains actionable insights and scenario planning to make informed strategic decisions backed by accurate financial intelligence.',
+        },
+        {
+          title: 'Regulatory Compliance & Governance',
+          description:
+            'We ensure full compliance with UAE regulations including Corporate Tax, VAT, IFRS standards, and statutory filings. All submissions are accurate, timely, and aligned with evolving legal frameworks to protect the business from financial risk.',
+        },
+        {
+          title: 'Audit & Internal Controls',
+          description:
+            'We implement strong internal control frameworks and manage audits end-to-end. Risks are identified early, processes are strengthened, and corrective actions are applied to maintain financial integrity, transparency, and operational accountability.',
         },
       ],
       sort_order: 1,
@@ -220,28 +222,28 @@ const fallback: SiteContent = {
     },
     {
       id: 'service-2',
-      tag: '02 - Compliance',
       title: 'Compliance Department',
-      description: 'Regulatory strategy, submissions, licensing, risk controls, and cross-functional compliance advisory.',
-      quote: '"Regulatory pathways built for fast and safe market entry."',
+      description: 'Ensuring Market Readiness & Regulatory Confidence',
       detail_sections: [
         {
-          title: '1. Regulatory Strategy & Planning',
-          points: [
-            'Develop regulatory pathways for new products.',
-            'Advise leadership on approval requirements, timelines, and risks.',
-            'Identify the most efficient route to market (e.g., MHRA, EUCEG, Trading Standards).',
-            'Support expansion into new countries by assessing regulatory requirements.',
-          ],
+          title: 'Regulatory Strategy & Market Entry',
+          description:
+            'We define clear regulatory pathways for products and expansion by assessing approval requirements, risks, and timelines. This ensures efficient entry into markets while minimizing delays and maintaining full compliance with regional standards.',
         },
         {
-          title: '2. Regulatory Submissions & Approvals',
-          points: [
-            'Prepare and submit applications to regulatory authorities.',
-            'Manage product registrations, renewals, and amendments.',
-            'Respond to agency questions or deficiency letters.',
-            'Maintain regulatory documentation and records.',
-          ],
+          title: 'Submissions & Authority Management',
+          description:
+            'We handle all regulatory submissions, approvals, renewals, and communications with governing bodies. Documentation is maintained accurately, ensuring products remain authorized and aligned with all applicable regulatory requirements.',
+        },
+        {
+          title: 'Compliance Oversight & Risk Control',
+          description:
+            'We continuously monitor regulations, industry standards, and internal compliance. Risks are identified early with mitigation strategies implemented, ensuring uninterrupted operations and protection against regulatory or reputational exposure.',
+        },
+        {
+          title: 'Regulatory Intelligence & Advisory',
+          description:
+            'We track global regulatory changes and provide strategic guidance across departments. This ensures the business stays ahead of evolving laws while supporting product development, marketing, and operational decisions with compliant direction.',
         },
       ],
       sort_order: 2,
@@ -249,26 +251,28 @@ const fallback: SiteContent = {
     },
     {
       id: 'service-3',
-      tag: '03 - Human Resources',
-      title: 'HR Department',
-      description: 'UAE and UK hiring, lifecycle, payroll, compliance, engagement, and strategic workforce support.',
-      quote: '"People operations built for UAE and UK scale."',
+      title: 'Human Resources',
+      description: 'Building & Managing High-Performance Teams',
       detail_sections: [
         {
-          title: '1. Talent Acquisition & Workforce Planning',
-          points: [
-            'Plan workforce requirements aligned with business growth in UAE and UK.',
-            'Draft job descriptions tailored to market requirements and legal standards.',
-            'Screen, shortlist, and interview candidates in compliance with UAE and UK rules.',
-          ],
+          title: 'Talent Acquisition & Workforce Planning',
+          description:
+            'We attract and recruit top talent across UAE and UK markets through structured hiring, compliant contracts, and effective onboarding. Workforce planning ensures the organization scales efficiently with the right people in place.',
         },
         {
-          title: '2. Employee Lifecycle Management',
-          points: [
-            'Prepare contracts, promotions, transfers, and exit documentation.',
-            'Monitor probation periods in line with local regulations.',
-            'Manage resignations and final settlements according to statutory requirements.',
-          ],
+          title: 'Employee Lifecycle Management',
+          description:
+            'We manage the full employee journey including onboarding, performance tracking, promotions, and exits. Processes are structured, transparent, and compliant, ensuring consistency and clarity across both UAE and UK operations.',
+        },
+        {
+          title: 'Payroll, Benefits & Legal Compliance',
+          description:
+            'We administer salaries, benefits, and compensation structures aligned with UAE and UK regulations. All payroll processes are accurate and compliant, ensuring employees are paid fairly while minimizing legal and financial risk.',
+        },
+        {
+          title: 'Performance, Engagement & Development',
+          description:
+            'We drive employee performance through structured appraisals, training programs, and engagement initiatives. This builds a motivated, skilled workforce aligned with company goals and fosters a strong, consistent organizational culture.',
         },
       ],
       sort_order: 3,
@@ -276,26 +280,28 @@ const fallback: SiteContent = {
     },
     {
       id: 'service-4',
-      tag: '04 - Integrated Delivery',
-      title: 'General Services + Project Management',
-      description: 'One coordinated delivery model across finance, compliance, HR, and project management execution.',
-      quote: '"One operating system across all departments."',
+      title: 'Project Management',
+      description: 'Delivering Projects with Precision & Control',
       detail_sections: [
         {
-          title: '1. Department Coverage',
-          points: [
-            'Finance leadership and UAE statutory oversight.',
-            'Regulatory strategy, approvals, and compliance operations.',
-            'UAE and UK HR lifecycle, payroll, legal compliance, and workforce planning.',
-          ],
+          title: 'Project Planning & Strategy',
+          description:
+            'We define clear project scopes, timelines, and resource plans aligned with business objectives. This ensures every project begins with structured direction, minimizing risks and setting a strong foundation for successful delivery.',
         },
         {
-          title: '2. Project Management Integration',
-          points: [
-            'Cross-functional planning that aligns departments, milestones, and reporting.',
-            'Program tracking with clear ownership, escalations, and performance indicators.',
-            'Unified governance so every team action supports business outcomes.',
-          ],
+          title: 'Execution & Coordination',
+          description:
+            'We manage day-to-day project execution, coordinating teams, stakeholders, and resources. Communication remains clear and consistent, ensuring all parties stay aligned and projects progress efficiently without unnecessary delays.',
+        },
+        {
+          title: 'Monitoring & Performance Control',
+          description:
+            'We track progress through milestones, KPIs, and reporting frameworks. Issues are identified early, adjustments are made proactively, and performance is continuously optimized to keep projects on schedule and within scope.',
+        },
+        {
+          title: 'Delivery & Continuous Improvement',
+          description:
+            'We ensure successful project completion with quality assurance and post-delivery evaluation. Learnings are documented and applied to future projects, driving continuous improvement and higher efficiency across all operations.',
         },
       ],
       sort_order: 4,

@@ -9,3 +9,6 @@ add column if not exists about_hero_background_url text;
 
 alter table branding_content
 add column if not exists contact_hero_background_url text;
+
+alter table branding_content
+add column if not exists services_hero_background_url text;

@@ -20,6 +20,7 @@ create table if not exists branding_content (
   favicon_url text,
   homepage_hero_video_url text,
   homepage_team_background_url text,
+  services_hero_background_url text,
   about_hero_background_url text,
   contact_hero_background_url text
 );
@@ -116,6 +117,7 @@ alter table branding_content add column if not exists logo_url text;
 alter table branding_content add column if not exists favicon_url text;
 alter table branding_content add column if not exists homepage_hero_video_url text;
 alter table branding_content add column if not exists homepage_team_background_url text;
+alter table branding_content add column if not exists services_hero_background_url text;
 alter table branding_content add column if not exists about_hero_background_url text;
 alter table branding_content add column if not exists contact_hero_background_url text;
 
@@ -123,7 +125,7 @@ insert into branding_content (
   id, company_name, hero_eyebrow, hero_title, hero_subtitle, services_title,
   services_description, team_title, insights_title, insights_description,
   footer_address, footer_newsletter_title, footer_pitch, footer_wordmark, footer_email, logo_url, favicon_url,
-  homepage_hero_video_url, homepage_team_background_url, about_hero_background_url, contact_hero_background_url
+  homepage_hero_video_url, homepage_team_background_url, services_hero_background_url, about_hero_background_url, contact_hero_background_url
 ) values (
   'default', 'Synergy Project Management', 'Synergy Project Management',
   'Your growth partner for companies ready to scale.',
@@ -137,7 +139,8 @@ insert into branding_content (
   'Subscribe to our newsletter.',
   'Stalled revenue, leaky funnels, stretched leadership. Whatever is holding you back, let''s solve it.',
   'synergy',
-  'Hello@synergypm.ae',
+  'Info@synergypm.ae',
+  null,
   null,
   null,
   null,
@@ -163,6 +166,7 @@ insert into branding_content (
   favicon_url = excluded.favicon_url,
   homepage_hero_video_url = excluded.homepage_hero_video_url,
   homepage_team_background_url = excluded.homepage_team_background_url,
+  services_hero_background_url = excluded.services_hero_background_url,
   about_hero_background_url = excluded.about_hero_background_url,
   contact_hero_background_url = excluded.contact_hero_background_url;
 

@@ -14,7 +14,7 @@ import StarterKit from '@tiptap/starter-kit'
 import PhoneInputLib from 'react-phone-input-2'
 import 'react-phone-input-2/lib/style.css'
 import { AdminDashboard, type AdminPage } from './components/AdminDashboard'
-import { TextPressureWord } from './components/TextPressureWord'
+import Noise from './components/Noise'
 import { contentApi, type JobPost, type ServiceItem, type SiteContent, type TeamMember } from './lib/content'
 
 type DialogMode = 'none' | 'book'
@@ -66,6 +66,13 @@ function normalizeExternalLink(raw: string) {
   if (!trimmed) return ''
   if (/^https?:\/\//i.test(trimmed)) return trimmed
   return `https://${trimmed}`
+}
+
+function isVideoMediaSource(url: string) {
+  const normalized = url.trim().toLowerCase()
+  if (!normalized) return false
+  if (normalized.startsWith('data:video/')) return true
+  return /\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(normalized)
 }
 
 function sanitizeRichHtml(input?: string | null) {
@@ -180,7 +187,7 @@ function getStatusBadgeClass(statusText: string) {
 function resolveServiceHref(service: ServiceItem) {
   const id = service.id.toLowerCase()
   const title = service.title.toLowerCase()
-  const tag = service.tag.toLowerCase()
+  const tag = String(service.tag ?? '').toLowerCase()
 
   if (id.includes('finance') || title.includes('finance') || tag.includes('finance')) return '/services/finance'
   if (id.includes('compliance') || title.includes('compliance') || tag.includes('compliance')) return '/services/compliance'
@@ -203,19 +210,33 @@ function resolveServiceHref(service: ServiceItem) {
   return '/services/project-management'
 }
 
+function normalizeServiceDetailSections(service: ServiceItem) {
+  const rawSections = Array.isArray(service.detail_sections) ? service.detail_sections : []
+  return rawSections
+    .map((section) => {
+      const title = typeof section?.title === 'string' ? section.title.trim() : ''
+      const legacyPoints = Array.isArray((section as { points?: unknown }).points)
+        ? ((section as { points?: unknown }).points as unknown[])
+            .filter((point): point is string => typeof point === 'string')
+            .map((point) => point.trim())
+            .filter(Boolean)
+            .join(' ')
+        : ''
+      const description = typeof (section as { description?: unknown }).description === 'string'
+        ? String((section as { description?: unknown }).description).trim()
+        : legacyPoints
+      if (!title && !description) return null
+      return { title, description }
+    })
+    .filter((section): section is { title: string; description: string } => section !== null)
+}
+
 function resolveCurrentRoute() {
   if (typeof window === 'undefined') return '/home'
   const path = window.location.pathname.toLowerCase()
   if (path !== '/') return path
   const hash = window.location.hash.toLowerCase()
   return hash && hash !== '#' ? hash : '#home'
-}
-
-function getShowcaseRatioClass(index: number, total: number) {
-  if (total === 3) {
-    return index === 1 ? 'ratio-5-4' : 'ratio-3-4'
-  }
-  return index % 2 === 0 ? 'ratio-3-4' : 'ratio-5-4'
 }
 
 const ADMIN_USERNAME = 'Hello@iankatana.com'
@@ -248,20 +269,18 @@ function App() {
   const [footerProgress, setFooterProgress] = useState(0)
   const [showReturnHeader, setShowReturnHeader] = useState(false)
   const [showProjectsHeader, setShowProjectsHeader] = useState(true)
-  const [showcaseIndex, setShowcaseIndex] = useState(0)
-  const [servicesHubIndex, setServicesHubIndex] = useState(0)
   const [insightsIndex, setInsightsIndex] = useState(0)
   const [isMobileViewport, setIsMobileViewport] = useState(
     typeof window !== 'undefined' ? window.innerWidth <= 680 : false,
   )
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
-  const [emailCopied, setEmailCopied] = useState(false)
   const [memberEmailCopied, setMemberEmailCopied] = useState(false)
   const [memberEmailLabel, setMemberEmailLabel] = useState('')
   const [contactName, setContactName] = useState('')
   const [contactEmail, setContactEmail] = useState('')
   const [contactPhone, setContactPhone] = useState('')
   const [contactMessage, setContactMessage] = useState('')
+  const [isContactSheetOpen, setIsContactSheetOpen] = useState(false)
   const [isSubmittingContact, setIsSubmittingContact] = useState(false)
   const [contactSubmissionStatus, setContactSubmissionStatus] = useState('')
   const [jobApplicantName, setJobApplicantName] = useState('')
@@ -287,6 +306,7 @@ function App() {
   const [backendAuthError, setBackendAuthError] = useState('')
   const [showBackendPassword, setShowBackendPassword] = useState(false)
   const [hasLoadedContent, setHasLoadedContent] = useState(false)
+  const [openServiceDetails, setOpenServiceDetails] = useState<Record<string, number>>({})
   const [siteContent, setSiteContent] = useState<SiteContent>(() => ({
     ...contentApi.fallback,
     team: [],
@@ -295,16 +315,11 @@ function App() {
     media: [],
     jobs: [],
   }))
-  const [emailLabel, setEmailLabel] = useState(contentApi.fallback.branding.footer_email)
   const heroSceneRef = useRef<HTMLElement | null>(null)
   const thirdSceneRef = useRef<HTMLElement | null>(null)
   const sixthSceneRef = useRef<HTMLElement | null>(null)
   const insightsSceneRef = useRef<HTMLElement | null>(null)
   const footerSceneRef = useRef<HTMLElement | null>(null)
-  const showcaseTrackRef = useRef<HTMLDivElement | null>(null)
-  const showcaseCardRefs = useRef<Array<HTMLElement | null>>([])
-  const servicesHubTrackRef = useRef<HTMLDivElement | null>(null)
-  const servicesHubCardRefs = useRef<Array<HTMLElement | null>>([])
   const careerCvInputRef = useRef<HTMLInputElement | null>(null)
   const lastScrollYRef = useRef(0)
   const careersLastScrollRef = useRef(0)
@@ -424,7 +439,18 @@ function App() {
     () => featuredInsights.slice(0, maxInsightsCards),
     [featuredInsights, maxInsightsCards],
   )
-  const canSlideServices = isMobileViewport || serviceCards.length > 3
+  const homepageFeaturedServices = useMemo(() => serviceCards.slice(0, 3), [serviceCards])
+  const homepageServicesHref = serviceCards[0]?.href ?? '/services/project-management'
+  const servicesPageCards = useMemo(
+    () =>
+      serviceCards.length > 0
+        ? serviceCards
+        : contentApi.fallback.services.map((service) => ({
+            ...service,
+            href: resolveServiceHref(service),
+          })),
+    [serviceCards],
+  )
 
   useEffect(() => {
     const computeProgress = (element: HTMLElement | null) => {
@@ -510,13 +536,6 @@ function App() {
   }, [navigateWithTransition])
 
   useEffect(() => {
-    setShowcaseIndex((previous) => {
-      if (serviceCards.length === 0) return 0
-      return Math.min(previous, serviceCards.length - 1)
-    })
-  }, [serviceCards.length])
-
-  useEffect(() => {
     setInsightsIndex((previous) => {
       if (visibleInsights.length === 0) return 0
       return Math.min(previous, visibleInsights.length - 1)
@@ -546,25 +565,6 @@ function App() {
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [])
-
-  useEffect(() => {
-    const track = showcaseTrackRef.current
-    const card = showcaseCardRefs.current[showcaseIndex]
-    if (!track) return
-    if (!canSlideServices) {
-      track.scrollTo({ left: 0, behavior: 'smooth' })
-      return
-    }
-    if (!card) return
-    const left = Math.max(0, card.offsetLeft)
-    track.scrollTo({ left, behavior: 'smooth' })
-  }, [showcaseIndex, canSlideServices])
-
-  useEffect(() => {
-    if (!canSlideServices && showcaseIndex !== 0) {
-      setShowcaseIndex(0)
-    }
-  }, [canSlideServices, showcaseIndex])
 
   const heroVars = {
     '--hero-progress': heroProgress,
@@ -596,7 +596,6 @@ function App() {
     try {
       const next = await contentApi.getSiteContent()
       setSiteContent(next)
-      setEmailLabel(next.branding.footer_email)
     } finally {
       setHasLoadedContent(true)
     }
@@ -755,28 +754,6 @@ function App() {
     )
   }
 
-  const copyFooterEmail = async () => {
-    const email = siteContent.branding.footer_email
-    try {
-      await navigator.clipboard.writeText(email)
-      setEmailCopied(true)
-      const copiedWord = 'Copied'
-      setEmailLabel('')
-      copiedWord.split('').forEach((char, index) => {
-        window.setTimeout(() => {
-          setEmailLabel((prev) => prev + char)
-        }, index * 70)
-      })
-      window.setTimeout(() => {
-        setEmailCopied(false)
-        setEmailLabel(email)
-      }, 1450)
-    } catch {
-      setEmailCopied(false)
-      setEmailLabel(email)
-    }
-  }
-
   const copyMemberEmail = async () => {
     if (!selectedMember) return
     const email = selectedMember.email
@@ -840,8 +817,9 @@ function App() {
     [selectedCareerId, siteContent.jobs],
   )
   const isCareerDetailRoute = isCareersRoute && selectedCareerId.length > 0
-  const homepageHeroVideoSrc = siteContent.branding.homepage_hero_video_url?.trim() ?? ''
-  const homepageHeroMediaStyle = homepageHeroVideoSrc
+  const homepageHeroMediaSrc = siteContent.branding.homepage_hero_video_url?.trim() ?? ''
+  const homepageHeroIsVideo = isVideoMediaSource(homepageHeroMediaSrc)
+  const homepageHeroMediaStyle = homepageHeroMediaSrc
     ? ({
         background:
           'linear-gradient(to top, rgba(6, 14, 24, 0.36) 0%, rgba(6, 14, 24, 0.14) 55%, rgba(6, 14, 24, 0.04) 100%)',
@@ -857,6 +835,16 @@ function App() {
         backgroundRepeat: 'no-repeat, no-repeat',
       } as CSSProperties)
     : undefined
+  const servicesHeroMediaStyle = siteContent.branding.services_hero_background_url
+    ? ({
+        backgroundImage:
+          `linear-gradient(to top, rgba(6, 14, 24, 0.36) 0%, rgba(6, 14, 24, 0.14) 55%, rgba(6, 14, 24, 0.04) 100%), ` +
+          `url("${siteContent.branding.services_hero_background_url}")`,
+        backgroundSize: 'auto, cover',
+        backgroundPosition: 'center, center',
+        backgroundRepeat: 'no-repeat, no-repeat',
+      } as CSSProperties)
+    : aboutHeroMediaStyle
   const contactHeroMediaStyle = siteContent.branding.contact_hero_background_url
     ? ({
         backgroundImage:
@@ -867,6 +855,10 @@ function App() {
         backgroundRepeat: 'no-repeat, no-repeat',
       } as CSSProperties)
     : undefined
+  const fallbackServiceCardImage =
+    siteContent.branding.services_hero_background_url?.trim() ||
+    siteContent.branding.about_hero_background_url?.trim() ||
+    ''
   const teamSectionStyle = siteContent.branding.homepage_team_background_url
     ? ({
         backgroundImage:
@@ -1052,6 +1044,9 @@ function App() {
       setContactEmail('')
       setContactPhone('')
       setContactMessage('')
+      if (typeof window !== 'undefined' && window.innerWidth <= 680) {
+        setIsContactSheetOpen(false)
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to send contact message.'
       setContactSubmissionStatus(message)
@@ -1184,26 +1179,6 @@ function App() {
   ])
 
   useEffect(() => {
-    if (!isServicesRoute || serviceCards.length === 0) return
-    const activeIndex = serviceCards.findIndex((service) => service.href.toLowerCase() === activePathname)
-    if (activeIndex >= 0) setServicesHubIndex(activeIndex)
-  }, [activePathname, isServicesRoute, serviceCards])
-
-  useEffect(() => {
-    if (serviceCards.length === 0) return
-    setServicesHubIndex((current) => Math.max(0, Math.min(current, serviceCards.length - 1)))
-  }, [serviceCards.length])
-
-  useEffect(() => {
-    if (!isServicesRoute) return
-    const track = servicesHubTrackRef.current
-    const card = servicesHubCardRefs.current[servicesHubIndex]
-    if (!track || !card) return
-    const targetLeft = Math.max(0, card.offsetLeft - 12)
-    track.scrollTo({ left: targetLeft, behavior: 'smooth' })
-  }, [isServicesRoute, servicesHubIndex])
-
-  useEffect(() => {
     if (activePathname === '/services' || activePathname === '/services/' || activePathname === '/services/general') {
       navigateWithTransition('/services/project-management', { replace: true })
     }
@@ -1215,71 +1190,64 @@ function App() {
   const sharedFooterSection = (
     <section ref={footerSceneRef} className="footer-scene" style={footerVars}>
       <div className="footer-sticky">
-        <div className="footer-bg-expand" aria-hidden="true" />
-        <footer className="site-footer-panel">
-          <div className="footer-top">
-            <div className="footer-left">
-              <p className="footer-brand">
-                <picture>
-                  <source media="(max-width: 920px)" srcSet={siteContent.branding.favicon_url || '/SYNERGY logo.png'} />
-                  <img src="/syngergy-logo.png" alt={siteContent.branding.company_name} className="footer-brand-logo" />
-                </picture>
-              </p>
-              <p className="footer-address">Onyx Tower 1, The Greens{'\n'}Dubai, United Arab Emirates</p>
-              <h2 className="footer-newsletter-heading">
-                <span className="footer-newsletter-primary">Subscribe</span>
-                <span className="footer-newsletter-secondary">to our newsletter.</span>
-              </h2>
-              <form className="footer-subscribe">
-                <input type="email" placeholder="Email" />
-                <button type="button">
-                  <span className="footer-subscribe-label-desktop">Subscribe</span>
-                  <span className="footer-subscribe-label-mobile">Subscribe Now</span>
-                  <span className="call-btn-icon" aria-hidden="true">
-                    <UpRightArrowIcon />
-                  </span>
-                </button>
-              </form>
+        <div className="footer-reference-shell">
+          <div className="footer-reference-hero">
+            <div>
+              <p className="footer-reference-kicker">Get started</p>
+              <h2>Reimagine What Your Business Can Achieve</h2>
             </div>
-            <div className="footer-right">
-              <h3>
-                Delivering precision-built projects, driven by expertise, innovation, and uncompromising commitment to quality excellence.
-              </h3>
-              <button
-                type="button"
-                className={`footer-email-row ${emailCopied ? 'copied' : ''}`}
-                onClick={copyFooterEmail}
-                aria-label="Copy email address"
-                title={emailCopied ? 'Copied' : 'Copy email'}
-              >
-                <span className="copy-email-icon" aria-hidden="true">
-                  <span className="copy-icon" />
-                </span>
-                <p className="footer-email">{emailLabel}</p>
-              </button>
-              <div className="footer-meta-links">
-                <div>
-                  <p>Socials</p>
-                  <div className="footer-socials">
-                    {socialMediaItems.map((item) => (
-                      <a key={`footer-social-${item.id}`} href={item.href} target="_blank" rel="noreferrer" aria-label={item.label}>
-                        <SocialIcon name={item.label} />
-                      </a>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p>Legal</p>
-                  <div className="footer-legal">
-                    <a href="#privacy">Privacy Policy</a>
-                    <a href="#terms">Terms of Service</a>
-                  </div>
-                </div>
+            <p>
+              We help leaders navigate complexity, solve critical challenges, and build stronger,
+              more resilient organizations for the future.
+            </p>
+          </div>
+          <div className="footer-reference-newsletter-row">
+            <form className="footer-reference-newsletter-card">
+              <span>Sign up for updates</span>
+              <input type="email" placeholder="name@email.com" />
+              <button type="button">Subscribe</button>
+            </form>
+            <a href="/contact-us" className="footer-reference-start-card">
+              <span>Get started</span>
+              <span aria-hidden="true">
+                <UpRightArrowIcon />
+              </span>
+            </a>
+          </div>
+          <div className="footer-reference-links-card">
+            <div className="footer-reference-col">
+              <p>Address</p>
+              <span>Onyx Tower 1, The Greens{'\n'}Dubai, United Arab Emirates</span>
+              <div className="footer-reference-socials">
+                {socialMediaItems.map((item) => (
+                  <a key={`footer-social-${item.id}`} href={item.href} target="_blank" rel="noreferrer" aria-label={item.label}>
+                    <SocialIcon name={item.label} />
+                  </a>
+                ))}
               </div>
             </div>
+            <div className="footer-reference-col">
+              <p>Links</p>
+              <a href="/">Home</a>
+              <a href="/about-us">About</a>
+              <a href="/projects">Projects</a>
+              <a href="/services/project-management">Services</a>
+              <a href="/contact-us">Contact</a>
+            </div>
+            <div className="footer-reference-col">
+              <p>Legal</p>
+              <a href="#privacy">Privacy Policy</a>
+              <a href="#terms">Terms & Conditions</a>
+            </div>
           </div>
-          <p className="footer-wordmark"><TextPressureWord text={siteContent.branding.footer_wordmark} /></p>
-        </footer>
+          <div className="footer-reference-bottom">
+            <div className="footer-reference-bottom-left">
+              <img src="/SYNERGY logo.png" alt={siteContent.branding.company_name} className="footer-reference-logo" />
+              <span>Copyright © 2026</span>
+            </div>
+            <span>All rights reserved.</span>
+          </div>
+        </div>
       </div>
     </section>
   )
@@ -1326,6 +1294,20 @@ function App() {
                 </span>
               </a>
             </header>
+            <div className="projects-mobile-menu-bubble">
+              <a className="brand" href="/">
+                <img src="/SYNERGY logo.png" alt={siteContent.branding.company_name} className="brand-wordmark-image" />
+              </a>
+              <button
+                className="menu-toggle"
+                onClick={() => setIsMobileMenuOpen((open) => !open)}
+                aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+                aria-expanded={isMobileMenuOpen}
+                aria-controls="mobile-nav-drawer"
+              >
+                {isMobileMenuOpen ? 'Close' : 'Menu'}
+              </button>
+            </div>
             <div
               className={`mobile-menu-overlay ${isMobileMenuOpen ? 'open' : ''}`}
               onClick={() => setIsMobileMenuOpen(false)}
@@ -1613,28 +1595,33 @@ function App() {
                 } as CSSProperties
               }
             >
-              {aboutServiceCards.map((card) => (
-                <article className="about-service-card" key={card.id}>
-                  <div
-                    className="about-service-card-media"
-                    style={
-                      card.image_url
-                        ? ({
-                            backgroundImage: `linear-gradient(180deg, rgba(7, 16, 27, 0.08), rgba(7, 16, 27, 0.8)), url("${card.image_url}")`,
-                            backgroundSize: 'auto, cover',
-                            backgroundPosition: 'center, center',
-                            backgroundRepeat: 'no-repeat, no-repeat',
-                          } as CSSProperties)
-                        : undefined
-                    }
-                    aria-hidden="true"
-                  />
-                  <div className="about-service-card-content">
-                    <h3>{card.title}</h3>
-                    <p>{card.description}</p>
-                  </div>
-                </article>
-              ))}
+              {aboutServiceCards.map((card) => {
+                const resolvedImage = typeof card.image_url === 'string' && card.image_url.trim().length > 0
+                  ? card.image_url.trim()
+                  : fallbackServiceCardImage
+                return (
+                  <article className="about-service-card" key={card.id}>
+                    <div
+                      className="about-service-card-media"
+                      style={
+                        resolvedImage
+                          ? ({
+                              backgroundImage: `linear-gradient(180deg, rgba(7, 16, 27, 0.08), rgba(7, 16, 27, 0.8)), url("${resolvedImage}")`,
+                              backgroundSize: 'auto, cover',
+                              backgroundPosition: 'center, center',
+                              backgroundRepeat: 'no-repeat, no-repeat',
+                            } as CSSProperties)
+                          : undefined
+                      }
+                      aria-hidden="true"
+                    />
+                    <div className="about-service-card-content">
+                      <h3>{card.title}</h3>
+                      <p>{card.description}</p>
+                    </div>
+                  </article>
+                )
+              })}
             </div>
           </div>
           <div className="services-showcase-dots" role="tablist" aria-label="About services navigation">
@@ -1730,6 +1717,59 @@ function App() {
   }
 
   if (isContactRoute) {
+    const contactForm = (extraClassName = '') => (
+      <form
+        className={`contact-page-form ${extraClassName}`.trim()}
+        onSubmit={submitContactInquiry}
+      >
+        <input
+          type="text"
+          value={contactName}
+          onChange={(event) => setContactName(event.target.value)}
+          placeholder="Your Name"
+          required
+        />
+        <input
+          type="email"
+          value={contactEmail}
+          onChange={(event) => setContactEmail(event.target.value)}
+          placeholder="Your email Address"
+          required
+        />
+        <PhoneInputComponent
+          country="ae"
+          value={contactPhone}
+          onChange={(value) => setContactPhone(value)}
+          inputProps={{
+            required: true,
+            name: 'phone',
+          }}
+          placeholder="Your Phone Number"
+          enableSearch
+          disableSearchIcon
+          countryCodeEditable={false}
+          containerClass="contact-phone-input-container"
+          buttonClass="contact-phone-input-button"
+          inputClass="contact-phone-input-field"
+          dropdownClass="contact-phone-input-dropdown"
+        />
+        <textarea
+          value={contactMessage}
+          onChange={(event) => setContactMessage(event.target.value)}
+          placeholder="Your Message"
+          rows={6}
+          required
+        />
+        <button type="submit" className="contact-page-form-submit" disabled={isSubmittingContact}>
+          <span>{isSubmittingContact ? 'Sending...' : 'Send message'}</span>
+          <span className="call-btn-icon" aria-hidden="true">
+            <UpRightArrowIcon />
+          </span>
+        </button>
+        {contactSubmissionStatus ? <p className="career-apply-status">{contactSubmissionStatus}</p> : null}
+      </form>
+    )
+
     return (
       <main className="contact-page-shell">
         <section className="contact-page-hero">
@@ -1840,60 +1880,42 @@ function App() {
                   </span>
                 </a>
               </div>
+              <button
+                type="button"
+                className="contact-mobile-message-trigger"
+                onClick={() => setIsContactSheetOpen(true)}
+              >
+                Send us a message
+              </button>
             </div>
             <aside className="contact-page-phone-panel" aria-label="Contact phone">
-              <form
-                className="contact-page-form"
-                onSubmit={submitContactInquiry}
-              >
-                <input
-                  type="text"
-                  value={contactName}
-                  onChange={(event) => setContactName(event.target.value)}
-                  placeholder="Your Name"
-                  required
-                />
-                <input
-                  type="email"
-                  value={contactEmail}
-                  onChange={(event) => setContactEmail(event.target.value)}
-                  placeholder="Your email Address"
-                  required
-                />
-                <PhoneInputComponent
-                  country="ae"
-                  value={contactPhone}
-                  onChange={(value) => setContactPhone(value)}
-                  inputProps={{
-                    required: true,
-                    name: 'phone',
-                  }}
-                  placeholder="Your Phone Number"
-                  enableSearch
-                  disableSearchIcon
-                  countryCodeEditable={false}
-                  containerClass="contact-phone-input-container"
-                  buttonClass="contact-phone-input-button"
-                  inputClass="contact-phone-input-field"
-                  dropdownClass="contact-phone-input-dropdown"
-                />
-                <textarea
-                  value={contactMessage}
-                  onChange={(event) => setContactMessage(event.target.value)}
-                  placeholder="Your Message"
-                  rows={6}
-                  required
-                />
-                <button type="submit" className="contact-page-form-submit" disabled={isSubmittingContact}>
-                  <span>{isSubmittingContact ? 'Sending...' : 'Send message'}</span>
-                  <span className="call-btn-icon" aria-hidden="true">
-                    <UpRightArrowIcon />
-                  </span>
-                </button>
-                {contactSubmissionStatus ? <p className="career-apply-status">{contactSubmissionStatus}</p> : null}
-              </form>
+              {contactForm()}
             </aside>
           </div>
+          <div
+            className={`contact-sheet-overlay ${isContactSheetOpen ? 'open' : ''}`}
+            onClick={() => setIsContactSheetOpen(false)}
+            aria-hidden={!isContactSheetOpen}
+          />
+          <aside
+            className={`contact-sheet ${isContactSheetOpen ? 'open' : ''}`}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Send us a message"
+          >
+            <div className="contact-sheet-header">
+              <h2>Send us a message</h2>
+              <button
+                type="button"
+                className="contact-sheet-close"
+                onClick={() => setIsContactSheetOpen(false)}
+                aria-label="Close message form"
+              >
+                ×
+              </button>
+            </div>
+            {contactForm('contact-sheet-form')}
+          </aside>
         </section>
       </main>
     )
@@ -1933,46 +1955,46 @@ function App() {
             </button>
           </div>
         </header>
-        <section className="careers-page-panel">
-          <header className="top-nav careers-page-header">
-            <div className="nav-bubble">
-              <a className="brand" href="/">
-                <img
-                  src="/SYNERGY logo.png"
-                  alt={siteContent.branding.company_name}
-                  className="brand-wordmark-image careers-brand-desktop"
-                />
-                <img
-                  src="/SYNERGY logo.png"
-                  alt={siteContent.branding.company_name}
-                  className="brand-wordmark-image careers-brand-mobile"
-                />
-              </a>
-              <nav className="menu">
-                <a href="/" className={navClass('#home')}>Home</a>
-                <a href="/services/project-management" className={serviceNavClass()}>Services</a>
-                <a href="/projects" className={projectNavClass()}>Projects</a>
-                <a href="/about-us" className={aboutNavClass()}>About us</a>
-                <a href="/careers" className={careersNavClass()}>Careers</a>
-                <a href="/contact-us" className={contactNavClass()}>Contact us</a>
-              </nav>
-              <button
-                className="menu-toggle"
-                onClick={() => setIsMobileMenuOpen((open) => !open)}
-                aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
-                aria-expanded={isMobileMenuOpen}
-                aria-controls="mobile-nav-drawer"
-              >
-                {isMobileMenuOpen ? 'Close' : 'Menu'}
-              </button>
-            </div>
-            <button className="call-btn" onClick={navigateToContact}>
-              Get in touch
-              <span className="call-btn-icon" aria-hidden="true">
-                <UpRightArrowIcon />
-              </span>
+        <header className="top-nav careers-page-header">
+          <div className="nav-bubble">
+            <a className="brand" href="/">
+              <img
+                src="/SYNERGY logo.png"
+                alt={siteContent.branding.company_name}
+                className="brand-wordmark-image careers-brand-desktop"
+              />
+              <img
+                src="/SYNERGY logo.png"
+                alt={siteContent.branding.company_name}
+                className="brand-wordmark-image careers-brand-mobile"
+              />
+            </a>
+            <nav className="menu">
+              <a href="/" className={navClass('#home')}>Home</a>
+              <a href="/services/project-management" className={serviceNavClass()}>Services</a>
+              <a href="/projects" className={projectNavClass()}>Projects</a>
+              <a href="/about-us" className={aboutNavClass()}>About us</a>
+              <a href="/careers" className={careersNavClass()}>Careers</a>
+              <a href="/contact-us" className={contactNavClass()}>Contact us</a>
+            </nav>
+            <button
+              className="menu-toggle"
+              onClick={() => setIsMobileMenuOpen((open) => !open)}
+              aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-nav-drawer"
+            >
+              {isMobileMenuOpen ? 'Close' : 'Menu'}
             </button>
-          </header>
+          </div>
+          <button className="call-btn" onClick={navigateToContact}>
+            Get in touch
+            <span className="call-btn-icon" aria-hidden="true">
+              <UpRightArrowIcon />
+            </span>
+          </button>
+        </header>
+        <section className="careers-page-panel">
           <div
             className={`mobile-menu-overlay ${isMobileMenuOpen ? 'open' : ''}`}
             onClick={() => setIsMobileMenuOpen(false)}
@@ -2240,195 +2262,207 @@ function App() {
     )
   }
 
-  if (activeServiceCard) {
-    const activeHubService = serviceCards[servicesHubIndex] ?? activeServiceCard
-    const activeHubServiceDetails = activeHubService.detail_sections?.[0]?.points?.slice(0, 3) ?? [activeHubService.description]
-    const servicesHubPreviewPanel = (
-      <article
-        key={activeHubService.id}
-        className="services-hub-preview"
-        style={
-          activeHubService.image_url
-            ? ({
-                backgroundImage: `linear-gradient(180deg, rgba(7, 12, 20, 0.06), rgba(7, 12, 20, 0.92)), url("${activeHubService.image_url}")`,
-                backgroundSize: 'auto, cover',
-                backgroundPosition: 'center, center',
-                backgroundRepeat: 'no-repeat, no-repeat',
-              } as CSSProperties)
-            : undefined
-        }
-      >
-        <button
-          type="button"
-          className="services-hub-preview-arrow"
-          aria-label={`Open ${activeHubService.title}`}
-          onClick={() => navigateWithTransition(activeHubService.href)}
-        >
-          <UpRightArrowIcon />
-        </button>
-        <div className="services-hub-preview-content">
-          <h2>{activeHubService.title}</h2>
-          <p>{activeHubService.description}</p>
-          <ul>
-            {activeHubServiceDetails.map((point) => (
-              <li key={`${activeHubService.id}-${point}`}>{point}</li>
-            ))}
-          </ul>
-        </div>
-      </article>
-    )
+  if (isServicesRoute) {
     return (
-      <>
-        <main className="services-page-shell">
-          <section className="services-hub-section">
-            <div className="services-hub-left">
-              <header className="services-hub-header">
-                <div className="services-hub-menu-bubble">
-                  <a className="brand" href="/">
-                    <img src="/SYNERGY logo.png" alt={siteContent.branding.company_name} className="brand-wordmark-image" />
-                  </a>
-                  <nav className="services-hub-inline-nav">
-                    <a href="/" className={navClass('#home')}>Home</a>
-                    <a href="/services/project-management" className={serviceNavClass()}>Services</a>
-                    <a href="/projects" className={projectNavClass()}>Projects</a>
+      <main className="services-page-shell services-reimagined-page">
+        <section className="about-page-hero services-reimagined-hero">
+          <div className="about-page-hero-visual-frame" aria-hidden="true">
+            <div className="about-page-hero-media" style={servicesHeroMediaStyle} />
+          </div>
+          <header className="top-nav about-page-header">
+            <div className="nav-bubble">
+              <a className="brand" href="/">
+                <img
+                  src="/syngergy-logo.png"
+                  alt={siteContent.branding.company_name}
+                  className="brand-wordmark-image about-brand-desktop"
+                />
+                <img
+                  src="/SYNERGY logo.png"
+                  alt={siteContent.branding.company_name}
+                  className="brand-wordmark-image about-brand-mobile"
+                />
+              </a>
+              <nav className="menu">
+                <a href="/" className={navClass('#home')}>Home</a>
+                <a href="/services/project-management" className={serviceNavClass()}>Services</a>
+                <a href="/projects" className={projectNavClass()}>Projects</a>
                 <a href="/about-us" className={aboutNavClass()}>About us</a>
                 <a href="/careers" className={careersNavClass()}>Careers</a>
                 <a href="/contact-us" className={contactNavClass()}>Contact us</a>
-                  </nav>
-                  <button
-                    className="menu-toggle"
-                    onClick={() => setIsMobileMenuOpen((open) => !open)}
-                    aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
-                    aria-expanded={isMobileMenuOpen}
-                    aria-controls="mobile-nav-drawer"
-                  >
-                    {isMobileMenuOpen ? 'Close' : 'Menu'}
-                  </button>
-                </div>
-              </header>
-              <div className="services-hub-content">
-                <h1>Unleash Strategic Control Across Every Department</h1>
-                <p>
-                  Explore Synergy&apos;s integrated service ecosystem, built to align finance, compliance, HR, and
-                  project execution into one reliable growth engine.
-                </p>
-                <div className="services-hub-nav-arrows" aria-label="Services navigation">
-                  <button
-                    type="button"
-                    className="services-hub-nav-arrow"
-                    onClick={() => setServicesHubIndex((index) => Math.max(0, index - 1))}
-                    disabled={servicesHubIndex <= 0}
-                    aria-label="Previous service"
-                  >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M15 6l-6 6 6 6" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    className="services-hub-nav-arrow"
-                    onClick={() => setServicesHubIndex((index) => Math.min(serviceCards.length - 1, index + 1))}
-                    disabled={servicesHubIndex >= serviceCards.length - 1}
-                    aria-label="Next service"
-                  >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M9 6l6 6-6 6" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              <aside className="services-hub-right services-hub-right-mobile" aria-label="Active service preview">
-                {servicesHubPreviewPanel}
-              </aside>
-              <div className="services-hub-cards-viewport" ref={servicesHubTrackRef}>
-                {serviceCards.map((service, index) => (
-                  <article
-                    key={`services-hub-card-${service.id}`}
-                    className={`services-hub-card ${servicesHubIndex === index ? 'active' : ''}`}
-                    ref={(element) => {
-                      servicesHubCardRefs.current[index] = element
-                    }}
-                    onClick={() => setServicesHubIndex(index)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault()
-                        setServicesHubIndex(index)
-                      }
-                    }}
-                  >
-                    <div
-                      className="services-hub-card-media"
-                      style={service.image_url ? ({ backgroundImage: `url("${service.image_url}")` } as CSSProperties) : undefined}
-                      aria-hidden="true"
-                    />
-                    <div className="services-hub-card-overlay">
-                      <h3>{service.title}</h3>
-                      <p>{service.description}</p>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </div>
-            <aside className="services-hub-right services-hub-right-desktop" aria-label="Active service preview">
-              {servicesHubPreviewPanel}
-            </aside>
-            <div
-              className={`mobile-menu-overlay ${isMobileMenuOpen ? 'open' : ''}`}
-              onClick={() => setIsMobileMenuOpen(false)}
-              aria-hidden={!isMobileMenuOpen}
-            />
-            <aside
-              id="mobile-nav-drawer"
-              className={`mobile-menu-drawer ${isMobileMenuOpen ? 'open' : ''}`}
-              aria-hidden={!isMobileMenuOpen}
-            >
-              <div className="mobile-menu-header">
-                <p className="mobile-menu-title">Menu</p>
-                <button
-                  type="button"
-                  className="mobile-menu-close"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  aria-label="Close menu"
-                >
-                  ×
-                </button>
-              </div>
-              <nav className="mobile-menu-links">
-                <a href="/" className={navClass('#home')} onClick={() => setIsMobileMenuOpen(false)}>
-                  Home
-                </a>
-                <a
-                  href="/services/project-management"
-                  className={serviceNavClass()}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Services
-                </a>
-                <a href="/projects" className={projectNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-                  Projects
-                </a>
-                <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-                  About us
-                </a>
-                <a href="/contact-us" className={contactNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-                  Contact us
-                </a>
               </nav>
-              {mobileConnectSection}
               <button
-                className="mobile-menu-call"
-                onClick={() => {
-                  navigateToContact()
-                }}
+                className="menu-toggle"
+                onClick={() => setIsMobileMenuOpen((open) => !open)}
+                aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+                aria-expanded={isMobileMenuOpen}
+                aria-controls="mobile-nav-drawer"
               >
-                Get in touch
+                {isMobileMenuOpen ? 'Close' : 'Menu'}
               </button>
-            </aside>
-          </section>
-        </main>
-      </>
+            </div>
+            <button className="call-btn" onClick={navigateToContact}>
+              Get in touch
+              <span className="call-btn-icon" aria-hidden="true">
+                <UpRightArrowIcon />
+              </span>
+            </button>
+          </header>
+          <div
+            className={`mobile-menu-overlay ${isMobileMenuOpen ? 'open' : ''}`}
+            onClick={() => setIsMobileMenuOpen(false)}
+            aria-hidden={!isMobileMenuOpen}
+          />
+          <aside
+            id="mobile-nav-drawer"
+            className={`mobile-menu-drawer ${isMobileMenuOpen ? 'open' : ''}`}
+            aria-hidden={!isMobileMenuOpen}
+          >
+            <div className="mobile-menu-header">
+              <p className="mobile-menu-title">Menu</p>
+              <button
+                type="button"
+                className="mobile-menu-close"
+                onClick={() => setIsMobileMenuOpen(false)}
+                aria-label="Close menu"
+              >
+                ×
+              </button>
+            </div>
+            <nav className="mobile-menu-links">
+              <a href="/" className={navClass('#home')} onClick={() => setIsMobileMenuOpen(false)}>
+                Home
+              </a>
+              <a
+                href="/services/project-management"
+                className={serviceNavClass()}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Services
+              </a>
+              <a href="/projects" className={projectNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
+                Projects
+              </a>
+              <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
+                About us
+              </a>
+              <a href="/careers" className={careersNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
+                Careers
+              </a>
+              <a href="/contact-us" className={contactNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
+                Contact us
+              </a>
+            </nav>
+            {mobileConnectSection}
+            <button
+              className="mobile-menu-call"
+              onClick={() => {
+                navigateToContact()
+              }}
+            >
+              Get in touch
+            </button>
+          </aside>
+          <div className="about-page-hero-content">
+            <p className="eyebrow">{siteContent.branding.hero_eyebrow}</p>
+            <h1>Experience That Builds Outcomes.</h1>
+            <p className="subtitle">
+              {siteContent.branding.hero_subtitle}
+            </p>
+          </div>
+        </section>
+
+        <section className="services-problem-section" aria-label="The problem we solve">
+          <div className="services-problem-inner">
+            <p className="services-problem-kicker">The problem we solve</p>
+            <h2 className="services-problem-reveal">
+              <p className="services-problem-text">
+                Most companies get stuck not because they lack talent, but because they lack direction. When priorities shift weekly and decisions are reactive, teams lose alignment, energy, and momentum.
+              </p>
+            </h2>
+            <h2 className="services-problem-reveal">
+              <p className="services-problem-text">
+                Our Business Strategy service replaces uncertainty with clarity - giving you a plan and a confident path forward.
+              </p>
+            </h2>
+          </div>
+        </section>
+
+        <section className="services-data-sections" aria-label="Services by department">
+          {servicesPageCards.map((service, serviceIndex) => {
+            const detailSections = normalizeServiceDetailSections(service)
+            const activeDetailIndex = Math.min(
+              openServiceDetails[service.id] ?? 0,
+              Math.max(0, detailSections.length - 1),
+            )
+            const resolvedServiceImage = typeof service.image_url === 'string' && service.image_url.trim().length > 0
+              ? service.image_url.trim()
+              : fallbackServiceCardImage
+            const hasServiceImage = resolvedServiceImage.length > 0
+            return (
+              <article
+                key={`services-page-row-${service.id}`}
+                className={`services-data-row ${serviceIndex % 2 === 1 ? 'is-reversed' : ''}`}
+              >
+                <div
+                  className="services-data-image"
+                  aria-hidden="true"
+                >
+                  {hasServiceImage ? (
+                    <img
+                      src={resolvedServiceImage}
+                      alt=""
+                      className="services-data-image-media"
+                      loading="lazy"
+                    />
+                  ) : null}
+                  <Noise
+                    className="services-data-image-noise"
+                    patternSize={250}
+                    patternScaleX={2}
+                    patternScaleY={2}
+                    patternRefreshInterval={2}
+                    patternAlpha={15}
+                  />
+                  <div className="services-data-image-gradient" />
+                </div>
+                <div className="services-data-content">
+                  <p className="services-data-kicker">Our Approach</p>
+                  <h2>{service.title}</h2>
+                  <p className="services-data-summary">{service.description}</p>
+
+                  <div className="services-data-accordion" role="list">
+                    {detailSections.map((detail, detailIndex) => {
+                      const isOpen = detailIndex === activeDetailIndex
+                      return (
+                        <section key={`${service.id}-detail-${detailIndex}`} className={`services-data-item ${isOpen ? 'open' : ''}`} role="listitem">
+                          <button
+                            type="button"
+                            className="services-data-item-trigger"
+                            onClick={() =>
+                              setOpenServiceDetails((prev) => ({
+                                ...prev,
+                                [service.id]: detailIndex,
+                              }))
+                            }
+                          >
+                            <span>{detail.title}</span>
+                            <span>{detailIndex + 1}</span>
+                          </button>
+                          <div className="services-data-item-panel">
+                            <p>{detail.description}</p>
+                          </div>
+                        </section>
+                      )
+                    })}
+                  </div>
+                </div>
+              </article>
+            )
+          })}
+        </section>
+        {sharedFooterSection}
+      </main>
     )
   }
 
@@ -2534,17 +2568,21 @@ function App() {
           <div className="hero-container hero-stage" style={heroVars}>
             <div className="hero-visual-frame" aria-hidden="true">
               <div className="hero-media" style={homepageHeroMediaStyle} />
-              {homepageHeroVideoSrc ? (
-                <video
-                  className="sticky-blue-wash-video"
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="auto"
-                >
-                  <source src={homepageHeroVideoSrc} type="video/mp4" />
-                </video>
+              {homepageHeroMediaSrc ? (
+                homepageHeroIsVideo ? (
+                  <video
+                    className="sticky-blue-wash-video"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="auto"
+                  >
+                    <source src={homepageHeroMediaSrc} />
+                  </video>
+                ) : (
+                  <img src={homepageHeroMediaSrc} alt="" className="sticky-blue-wash-video" loading="eager" />
+                )
               ) : null}
             </div>
             <header className="top-nav top-nav-hero" style={headerBlendVars}>
@@ -2696,83 +2734,56 @@ function App() {
         </div>
       </section>
 
-      <section className="services-showcase-section" aria-label="Services showcase">
-        <div className="services-showcase-header">
-          <h2>What we excel at</h2>
-          <div className="section-nav-arrows" aria-label="Services navigation">
+      <section className="home-services-section" aria-label="Services showcase">
+        <div className="home-services-header">
+          <p>SERVICES</p>
+          <div className="home-services-heading-row">
+            <h2>Built for Real Business Outcomes</h2>
             <button
               type="button"
-              className="section-nav-arrow"
-              onClick={() => setShowcaseIndex((index) => Math.max(0, index - 1))}
-              disabled={!canSlideServices || showcaseIndex <= 0}
-              aria-label="Previous service card"
+              className="home-services-view-all primary"
+              onClick={() => navigateWithTransition(homepageServicesHref)}
             >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M15 6l-6 6 6 6" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className="section-nav-arrow"
-              onClick={() => setShowcaseIndex((index) => Math.min(serviceCards.length - 1, index + 1))}
-              disabled={!canSlideServices || showcaseIndex >= serviceCards.length - 1}
-              aria-label="Next service card"
-            >
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M9 6l6 6-6 6" />
-              </svg>
+              View all services
+              <span aria-hidden="true">
+                <UpRightArrowIcon />
+              </span>
             </button>
           </div>
         </div>
-        <div className="services-showcase-track" ref={showcaseTrackRef}>
-          {serviceCards.map((service, index) => (
-            <article
-              key={`showcase-${service.id}`}
-              className={`services-showcase-card ${getShowcaseRatioClass(index, serviceCards.length)}`}
-              ref={(element) => {
-                showcaseCardRefs.current[index] = element
-              }}
-              role="link"
-              tabIndex={0}
-              aria-label={`Open ${service.title}`}
-              onClick={() => {
-                navigateWithTransition(service.href)
-              }}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault()
-                  navigateWithTransition(service.href)
-                }
-              }}
-              style={
-                service.image_url
-                  ? ({
-                      backgroundImage: `linear-gradient(180deg, rgba(5, 15, 26, 0.06), rgba(5, 15, 26, 0.78)), radial-gradient(circle at 62% 24%, rgba(191, 213, 233, 0.2), transparent 52%), url("${service.image_url}")`,
-                      backgroundSize: 'auto, auto, cover',
-                      backgroundPosition: 'center, center, center',
-                      backgroundRepeat: 'no-repeat, no-repeat, no-repeat',
-                    } as CSSProperties)
-                  : undefined
-              }
-            >
-              <div className="services-showcase-overlay">
-                <h3>{service.title}</h3>
+        <div className="home-services-grid">
+          {homepageFeaturedServices.map((service) => {
+            const resolvedImage = typeof service.image_url === 'string' && service.image_url.trim().length > 0
+              ? service.image_url.trim()
+              : fallbackServiceCardImage
+            return (
+              <article key={`home-service-${service.id}`} className="home-services-item">
+                <a
+                  href={service.href}
+                  className="home-services-card"
+                  onClick={(event) => {
+                    event.preventDefault()
+                    navigateWithTransition(service.href)
+                  }}
+                  style={
+                    resolvedImage
+                      ? ({
+                          backgroundImage: `linear-gradient(180deg, rgba(7, 16, 27, 0.02), rgba(7, 16, 27, 0.72)), url("${resolvedImage}")`,
+                        } as CSSProperties)
+                      : undefined
+                  }
+                >
+                  <span className="home-services-card-arrow" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M8 16L16 8M10 8h6v6" />
+                    </svg>
+                  </span>
+                  <h3>{service.title}</h3>
+                </a>
                 <p>{service.description}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-        <div className="services-showcase-dots" role="tablist" aria-label="Services showcase navigation">
-          {serviceCards.map((service, index) => (
-            <button
-              key={`showcase-dot-${service.id}`}
-              type="button"
-              className={`services-showcase-dot ${showcaseIndex === index ? 'active' : ''}`}
-              onClick={() => setShowcaseIndex(index)}
-              aria-label={`Show ${service.title}`}
-              aria-selected={showcaseIndex === index}
-            />
-          ))}
+              </article>
+            )
+          })}
         </div>
       </section>
 
