@@ -2744,7 +2744,9 @@ function App() {
                   style={
                     resolvedImage
                       ? ({
-                          backgroundImage: `linear-gradient(180deg, rgba(7, 16, 27, 0.02), rgba(7, 16, 27, 0.72)), url("${resolvedImage}")`,
+                          backgroundImage: `url("${resolvedImage}")`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
                         } as CSSProperties)
                       : undefined
                   }
