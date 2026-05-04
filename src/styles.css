@@ -671,6 +671,58 @@ a {
   text-transform: none;
 }
 
+.projects-problem-section {
+  padding-top: 2.6rem;
+}
+
+.projects-problem-rich {
+  color: #0f1f35;
+  font-size: clamp(1rem, 1.5vw, 1.24rem);
+  line-height: 1.58;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+.projects-problem-rich * {
+  background: transparent !important;
+  text-transform: none;
+}
+
+.projects-problem-rich p {
+  margin: 0 0 0.72rem;
+}
+
+.projects-problem-rich h2,
+.projects-problem-rich h3 {
+  margin: 0.2rem 0 0.65rem;
+  color: #0f1f35;
+  font-family: 'Bricolage Grotesque', sans-serif;
+  line-height: 1.12;
+  text-transform: none;
+}
+
+.projects-problem-rich h2 {
+  font-size: clamp(1.45rem, 2.5vw, 2.25rem);
+}
+
+.projects-problem-rich h3 {
+  font-size: clamp(1.2rem, 2vw, 1.75rem);
+}
+
+.projects-problem-rich ul,
+.projects-problem-rich ol {
+  margin: 0.35rem 0 0.85rem 1.15rem;
+  padding: 0;
+}
+
+.projects-problem-rich li {
+  margin: 0.16rem 0;
+}
+
+.projects-problem-rich strong {
+  font-weight: 600 !important;
+}
+
 .services-problem-hook {
   font-size: 1em;
 }
@@ -8145,6 +8197,7 @@ h1 {
 
 .admin-rich-surface {
   min-height: 190px;
+  max-height: 320px;
   border: none;
   background: #fff;
   padding: 0.7rem 0.8rem;
@@ -8154,6 +8207,25 @@ h1 {
   line-height: 1.52;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  overflow-y: auto;
+}
+
+.admin-rich-surface h2,
+.admin-rich-surface h3,
+.admin-rich-surface p {
+  margin: 0 0 0.55rem;
+}
+
+.admin-rich-surface h2 {
+  font-size: 1.45rem;
+  line-height: 1.2;
+  font-weight: 600 !important;
+}
+
+.admin-rich-surface h3 {
+  font-size: 1.2rem;
+  line-height: 1.25;
+  font-weight: 600 !important;
 }
 
 .admin-rich-surface:focus {
@@ -8177,4 +8249,86 @@ h1 {
 .career-job-description-html ol {
   margin: 0.6rem 0 0.8rem 1.2rem;
   padding: 0;
+}
+
+.policy-page-shell {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f5f8fc 0%, #ffffff 42%, #f7f9fc 100%);
+  padding: 10.5rem 1.3rem 4.5rem;
+}
+
+.policy-page-card {
+  width: min(960px, 100%);
+  margin: 0 auto;
+  background: #ffffff;
+  border: 1px solid rgba(18, 57, 97, 0.1);
+  border-radius: 28px;
+  box-shadow: 0 22px 56px rgba(15, 40, 74, 0.12);
+  padding: clamp(1.25rem, 1rem + 1.5vw, 2.4rem);
+}
+
+.policy-eyebrow {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(17, 82, 150, 0.85);
+  font-weight: 700;
+}
+
+.policy-page-card h1 {
+  margin: 0 0 1.4rem;
+  font-size: clamp(1.7rem, 1.2rem + 2.1vw, 2.45rem);
+  line-height: 1.08;
+  color: #0b1e33;
+}
+
+.policy-content {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.policy-content section {
+  display: grid;
+  gap: 0.58rem;
+}
+
+.policy-content h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  line-height: 1.26;
+  color: #112c48;
+}
+
+.policy-content p,
+.policy-content li {
+  margin: 0;
+  color: rgba(15, 32, 51, 0.87);
+  font-size: 0.98rem;
+  line-height: 1.72;
+}
+
+.policy-content ul {
+  margin: 0.1rem 0 0.25rem 1.2rem;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+@media (max-width: 720px) {
+  .policy-page-shell {
+    padding-top: 8.8rem;
+    padding-bottom: 3rem;
+  }
+
+  .policy-page-card {
+    border-radius: 20px;
+    padding: 1.1rem 0.95rem;
+  }
+
+  .policy-content p,
+  .policy-content li {
+    font-size: 0.93rem;
+    line-height: 1.62;
+  }
 }

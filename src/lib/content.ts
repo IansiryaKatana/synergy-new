@@ -33,6 +33,7 @@ export type InsightItem = {
   chip: string
   date_label: string
   title: string
+  project_description_html?: string | null
   hero_image_url?: string | null
   image_url?: string | null
   alt_style: boolean

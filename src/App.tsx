@@ -94,6 +94,23 @@ function sanitizeRichHtml(input?: string | null) {
   return doc.body.innerHTML
 }
 
+function sanitizeProjectHtml(input?: string | null) {
+  const safe = sanitizeRichHtml(input)
+  if (!safe) return ''
+  if (typeof window === 'undefined') return safe.replace(/\sstyle="[^"]*"/gi, '')
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(safe, 'text/html')
+  doc.querySelectorAll('*').forEach((el) => {
+    el.removeAttribute('style')
+    el.removeAttribute('class')
+    el.removeAttribute('id')
+    for (const attr of Array.from(el.attributes)) {
+      if (attr.name.toLowerCase().startsWith('data-')) el.removeAttribute(attr.name)
+    }
+  })
+  return doc.body.innerHTML
+}
+
 function stripHtml(input?: string | null) {
   if (!input) return ''
   if (typeof window === 'undefined') return input.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -789,6 +806,9 @@ function App() {
   const isServicesRoute = activePathname.startsWith('/services')
   const isProjectsRoute = activePathname === '/projects' || activePathname.startsWith('/projects/')
   const isAboutRoute = activePathname === '/about-us' || activePathname.startsWith('/about-us/')
+  const isTermsRoute = activePathname === '/terms-of-use' || activePathname.startsWith('/terms-of-use/')
+  const isPrivacyRoute = activePathname === '/privacy-policy' || activePathname.startsWith('/privacy-policy/')
+  const isCookieRoute = activePathname === '/cookie-policy' || activePathname.startsWith('/cookie-policy/')
   const isCareersRoute =
     activePathname === '/careers' ||
     activePathname.startsWith('/careers/') ||
@@ -1097,6 +1117,21 @@ function App() {
       pageDescription = clampMetaDescription(
         'Learn about Synergy Project Management, our multidisciplinary team, and how we align departments into one growth-ready operating system.',
       )
+    } else if (isTermsRoute) {
+      pageTitle = 'Terms of Use | Synergy Project Management'
+      pageDescription = clampMetaDescription(
+        'Read the Terms of Use for accessing and using the Synergy Project Management website.',
+      )
+    } else if (isPrivacyRoute) {
+      pageTitle = 'Privacy Policy | Synergy Project Management'
+      pageDescription = clampMetaDescription(
+        'Read how Synergy Project Management handles personal data and protects your privacy.',
+      )
+    } else if (isCookieRoute) {
+      pageTitle = 'Cookie Policy | Synergy Project Management'
+      pageDescription = clampMetaDescription(
+        'Learn how Synergy Project Management uses cookies and related technologies on this website.',
+      )
     } else if (isCareersRoute) {
       if (selectedCareerJob) {
         const detailSource = selectedCareerJob.job_description_html
@@ -1175,11 +1210,14 @@ function App() {
   }, [
     activeServiceCard,
     isAboutRoute,
+    isCookieRoute,
     isCareersRoute,
     isContactRoute,
     isHomeRoute,
+    isPrivacyRoute,
     isProjectsRoute,
     isServicesRoute,
+    isTermsRoute,
     selectedCareerJob,
   ])
 
@@ -1241,8 +1279,9 @@ function App() {
             </div>
             <div className="footer-reference-col">
               <p>Legal</p>
-              <a href="#privacy">Privacy Policy</a>
-              <a href="#terms">Terms & Conditions</a>
+              <a href="/privacy-policy">Privacy Policy</a>
+              <a href="/terms-of-use">Terms of Use</a>
+              <a href="/cookie-policy">Cookie Policy</a>
             </div>
           </div>
           <div className="footer-reference-bottom">
@@ -1263,6 +1302,7 @@ function App() {
       || fallbackServiceCardImage
     const activeProjectStatus = activeProjectHero?.chip?.replace(/^Status:\s*/i, '').trim() ?? ''
     const activeProjectLocation = activeProjectHero?.date_label?.replace(/^Location:\s*/i, '').trim() ?? ''
+    const activeProjectDescriptionHtml = sanitizeProjectHtml(activeProjectHero?.project_description_html).trim()
     return (
       <>
         <main className="projects-page-shell">
@@ -1403,6 +1443,17 @@ function App() {
               </div>
             </div>
           </section>
+          {activeProjectDescriptionHtml ? (
+            <section className="services-problem-section projects-problem-section" aria-label="Project description">
+              <div className="services-problem-inner">
+                <p className="services-problem-kicker">Project overview</p>
+                <div
+                  className="projects-problem-rich"
+                  dangerouslySetInnerHTML={{ __html: activeProjectDescriptionHtml }}
+                />
+              </div>
+            </section>
+          ) : null}
         </main>
         {sharedFooterSection}
       </>
@@ -1882,6 +1933,523 @@ function App() {
           </aside>
         </section>
       </main>
+    )
+  }
+
+  if (isTermsRoute || isPrivacyRoute || isCookieRoute) {
+    const policyTitle = isTermsRoute ? 'Terms of Use' : isPrivacyRoute ? 'Privacy Policy' : 'Cookie Policy'
+    return (
+      <>
+        <header className="top-nav top-nav-global return-visible returning-header policy-header">
+          <div className="nav-bubble">
+            <a className="brand" href="/">
+              <img src="/SYNERGY logo.png" alt="Synergy Project Management" className="brand-wordmark-image" />
+            </a>
+            <nav className="menu">
+              <a href="/" className={navClass('#home')}>Home</a>
+              <a href="/services/project-management" className={serviceNavClass()}>Services</a>
+              <a href="/projects" className={projectNavClass()}>Projects</a>
+              <a href="/about-us" className={aboutNavClass()}>About us</a>
+              <a href="/careers" className={careersNavClass()}>Careers</a>
+              <a href="/contact-us" className={contactNavClass()}>Contact us</a>
+            </nav>
+            <button
+              className="menu-toggle"
+              onClick={() => setIsMobileMenuOpen((open) => !open)}
+              aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-nav-drawer"
+            >
+              {isMobileMenuOpen ? 'Close' : 'Menu'}
+            </button>
+            <button className="call-btn" onClick={navigateToContact}>
+              Get in touch
+              <span className="call-btn-icon" aria-hidden="true">
+                <UpRightArrowIcon />
+              </span>
+            </button>
+          </div>
+        </header>
+        <div
+          className={`mobile-menu-overlay ${isMobileMenuOpen ? 'open' : ''}`}
+          onClick={() => setIsMobileMenuOpen(false)}
+          aria-hidden={!isMobileMenuOpen}
+        />
+        <aside
+          id="mobile-nav-drawer"
+          className={`mobile-menu-drawer ${isMobileMenuOpen ? 'open' : ''}`}
+          aria-hidden={!isMobileMenuOpen}
+        >
+          <div className="mobile-menu-header">
+            <p className="mobile-menu-title">Menu</p>
+            <button
+              type="button"
+              className="mobile-menu-close"
+              onClick={() => setIsMobileMenuOpen(false)}
+              aria-label="Close menu"
+            >
+              ×
+            </button>
+          </div>
+          <nav className="mobile-menu-links">
+            <a href="/" className={navClass('#home')} onClick={() => setIsMobileMenuOpen(false)}>
+              Home
+            </a>
+            <a
+              href="/services/project-management"
+              className={serviceNavClass()}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Services
+            </a>
+            <a href="/projects" className={projectNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
+              Projects
+            </a>
+            <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
+              About us
+            </a>
+            <a href="/careers" className={careersNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
+              Careers
+            </a>
+            <a href="/contact-us" className={contactNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
+              Contact us
+            </a>
+          </nav>
+          {mobileConnectSection}
+          <button
+            className="mobile-menu-call"
+            onClick={() => {
+              navigateToContact()
+            }}
+          >
+            Get in touch
+          </button>
+        </aside>
+        <main className="policy-page-shell">
+          <section className="policy-page-card">
+            <p className="policy-eyebrow">Legal</p>
+            <h1>{policyTitle}</h1>
+            {isTermsRoute ? (
+              <div className="policy-content">
+                <section>
+                  <h2>1. Introduction</h2>
+                  <p>
+                    These Terms of Use, together with the documents referred to in them, set out the terms on which
+                    you may use the website operated by Synergy Project Management LLC (&quot;Synergy&quot;, &quot;we&quot;,
+                    &quot;us&quot;, or &quot;our&quot;).
+                  </p>
+                  <p>Use of our website includes accessing, browsing, or using any part of the website.</p>
+                  <p>
+                    By using our website, you confirm that you accept these Terms of Use and agree to comply with
+                    them. If you do not agree to these Terms of Use, you must not use our website.
+                  </p>
+                  <p>These Terms of Use should be read together with our Privacy Policy and Cookie Policy.</p>
+                </section>
+                <section>
+                  <h2>2. Information About Us</h2>
+                  <p>
+                    This website is operated by Synergy Project Management LLC, a company incorporated in Dubai, United
+                    Arab Emirates, with its registered office at:
+                  </p>
+                  <p>
+                    AL KHABEESI BUILDING
+                    <br />
+                    OFFICE NO. 9/142
+                    <br />
+                    Al Khabeesi
+                    <br />
+                    Dubai, United Arab Emirates
+                  </p>
+                </section>
+                <section>
+                  <h2>3. Changes to These Terms and Our Website</h2>
+                  <p>
+                    We may revise these Terms of Use at any time by updating this page. Please check this page from
+                    time to time, as any changes will be binding on you.
+                  </p>
+                  <p>
+                    We may update our website from time to time and may change the content at any time. However, we
+                    are under no obligation to update the website, and any content on the website may be out of date
+                    at any given time.
+                  </p>
+                  <p>We do not guarantee that our website, or any content on it, will be free from errors or omissions.</p>
+                </section>
+                <section>
+                  <h2>4. Access to Our Website</h2>
+                  <p>Our website is made available free of charge.</p>
+                  <p>
+                    We do not guarantee that our website, or any content on it, will always be available or
+                    uninterrupted. Access to the website is permitted on a temporary basis.
+                  </p>
+                  <p>
+                    We may suspend, withdraw, discontinue, or change all or any part of the website without notice. We
+                    will not be liable if, for any reason, the website is unavailable at any time or for any period.
+                  </p>
+                  <p>
+                    You are responsible for making all arrangements necessary for you to have access to our website.
+                    You are also responsible for ensuring that any person who accesses our website through your internet
+                    connection is aware of these Terms of Use and complies with them.
+                  </p>
+                </section>
+                <section>
+                  <h2>5. Intellectual Property Rights</h2>
+                  <p>
+                    We are the owner or licensee of all intellectual property rights in our website and in the material
+                    published on it. Those works are protected by applicable copyright, trademark, and intellectual
+                    property laws. All such rights are reserved.
+                  </p>
+                  <p>
+                    You may print or download extracts from our website for your personal use, and you may draw the
+                    attention of others within your organisation to content posted on our website.
+                  </p>
+                  <p>You must not:</p>
+                  <ul>
+                    <li>modify any paper or digital copies of materials you have printed or downloaded from our website;</li>
+                    <li>use any illustrations, photographs, graphics, video, or other materials separately from any accompanying text;</li>
+                    <li>use any part of the content on our website for commercial purposes without obtaining our prior written consent;</li>
+                    <li>reproduce, copy, distribute, or otherwise exploit any content from our website except as permitted by these Terms of Use.</li>
+                  </ul>
+                  <p>
+                    Our status, and that of any identified contributors, as the authors of content on our website must
+                    always be acknowledged.
+                  </p>
+                  <p>
+                    If you print, copy, or download any part of our website in breach of these Terms of Use, your right
+                    to use the website will cease immediately and you must, at our option, return or destroy any copies
+                    of the materials you have made.
+                  </p>
+                </section>
+                <section>
+                  <h2>6. No Reliance on Information</h2>
+                  <p>The content on our website is provided for general information purposes only.</p>
+                  <p>
+                    It is not intended to amount to professional, legal, engineering, construction, project management,
+                    advisory, or other specialist advice on which you should rely.
+                  </p>
+                  <p>
+                    You must obtain professional or specialist advice before taking, or refraining from taking, any
+                    action on the basis of content on our website.
+                  </p>
+                  <p>
+                    Although we make reasonable efforts to update the information on our website, we make no
+                    representations, warranties, or guarantees, whether express or implied, that the content on our
+                    website is accurate, complete, or up to date.
+                  </p>
+                </section>
+                <section>
+                  <h2>7. Professional Services Disclaimer</h2>
+                  <p>Any services described on our website are subject to separate written agreements.</p>
+                  <p>Nothing on our website constitutes:</p>
+                  <ul>
+                    <li>an offer to provide services;</li>
+                    <li>a binding commitment by Synergy;</li>
+                    <li>a guarantee of project outcome, cost, timing, approval, completion, or performance.</li>
+                  </ul>
+                  <p>
+                    All project-related obligations, scope of services, deliverables, timelines, fees, responsibilities,
+                    and liabilities are governed exclusively by the relevant written agreement entered into between
+                    Synergy and its client.
+                  </p>
+                  <p>
+                    No website content shall amend, override, or form part of any contract unless expressly agreed in
+                    writing by Synergy.
+                  </p>
+                </section>
+                <section>
+                  <h2>8. Limitation of Liability</h2>
+                  <p>The content on our website is provided on an &quot;as is&quot; and &quot;as available&quot; basis.</p>
+                  <p>
+                    To the fullest extent permitted by applicable law, we exclude all conditions, warranties,
+                    representations, or other terms which may apply to our website or any content on it, whether express
+                    or implied.
+                  </p>
+                  <p>We assume no responsibility for:</p>
+                  <ul>
+                    <li>the accuracy, completeness, or validity of any content on our website;</li>
+                    <li>any errors or omissions in the content;</li>
+                    <li>any reliance placed on the content by you or any third party;</li>
+                    <li>any loss or damage arising from use of, or inability to use, our website;</li>
+                    <li>any loss or damage arising from reliance on any content displayed on our website.</li>
+                  </ul>
+                  <p>
+                    To the fullest extent permitted by applicable law, we shall not be liable for any loss or damage,
+                    whether in contract, tort, negligence, breach of statutory duty, or otherwise, arising under or in
+                    connection with:
+                  </p>
+                  <ul>
+                    <li>use of, or inability to use, our website;</li>
+                    <li>use of, or reliance on, any content displayed on our website;</li>
+                    <li>any website linked to or from our website;</li>
+                    <li>
+                      any virus, distributed denial-of-service attack, or other technologically harmful material
+                      affecting your computer equipment, software, data, or other proprietary material.
+                    </li>
+                  </ul>
+                  <p>
+                    This includes, without limitation, any indirect or consequential loss, loss of profit, loss of
+                    business, loss of revenue, loss of goodwill, loss of opportunity, loss of anticipated savings, or
+                    business interruption.
+                  </p>
+                  <p>
+                    Nothing in these Terms of Use excludes or limits liability where such liability cannot be excluded
+                    or limited under applicable law.
+                  </p>
+                </section>
+                <section>
+                  <h2>9. Indemnity</h2>
+                  <p>
+                    You agree to indemnify and hold harmless Synergy from any claims, liabilities, damages, or expenses
+                    arising out of your misuse of the website or breach of these Terms.
+                  </p>
+                </section>
+                <section>
+                  <h2>10. Changes to These Terms</h2>
+                  <p>We may update these Terms at any time.</p>
+                  <p>
+                    Any changes will be effective immediately upon posting on this website. You are responsible for
+                    reviewing these Terms periodically.
+                  </p>
+                </section>
+                <section>
+                  <h2>11. Governing Law and Jurisdiction</h2>
+                  <p>These Terms are governed by the laws of the United Arab Emirates.</p>
+                  <p>
+                    Any disputes arising in connection with these Terms shall be subject to the exclusive jurisdiction
+                    of the courts of Dubai, UAE.
+                  </p>
+                </section>
+                <section>
+                  <h2>12. Contact</h2>
+                  <p>If you have any questions about these Terms, please contact us at:</p>
+                  <p>
+                    <a href="mailto:info@synergypm.ae">info@synergypm.ae</a>
+                  </p>
+                </section>
+              </div>
+            ) : isCookieRoute ? (
+              <div className="policy-content">
+                <section>
+                  <h2>Last Update: 04/05/2026</h2>
+                </section>
+                <section>
+                  <h2>Introduction</h2>
+                  <p>
+                    This Cookie Policy explains how Synergy Project Management LLC uses cookies and similar
+                    technologies on our Website. It should be read together with our Website Privacy Policy.
+                  </p>
+                </section>
+                <section>
+                  <h2>What are cookies and similar technologies</h2>
+                  <p>
+                    Cookies are small text files placed on your device when you visit a website. We also use similar
+                    technologies, such as pixels, tags, and local storage, to recognize your device, remember
+                    preferences, and understand how the site is used.
+                  </p>
+                </section>
+                <section>
+                  <h2>How we use cookies</h2>
+                  <p>We use:</p>
+                  <ul>
+                    <li>
+                      Strictly necessary cookies to enable core site functionality, security, and network management.
+                      These do not require consent.
+                    </li>
+                    <li>
+                      Performance/analytics cookies (for example, analytics tools such as Google Analytics) to
+                      understand how visitors use our Website, improve content and navigation, and diagnose issues.
+                      These require your consent in the UK, EU/EEA, Ireland, and where otherwise required.
+                    </li>
+                    <li>
+                      Preference/functionality cookies to remember choices (for example, language), which may require
+                      consent depending on jurisdiction.
+                    </li>
+                  </ul>
+                  <p>
+                    The specific cookies we use, their purposes, and lifespans may be presented in a cookie banner or
+                    settings panel available on our Website. Analytics cookies are set only after you provide consent
+                    via the cookie banner/settings, where required.
+                  </p>
+                </section>
+                <section>
+                  <h2>Legal basis</h2>
+                  <p>
+                    We rely on your consent for non-essential cookies in jurisdictions where consent is required. We
+                    rely on legitimate interests or equivalent local bases for strictly necessary cookies to operate
+                    the Website.
+                  </p>
+                </section>
+                <section>
+                  <h2>Third-party cookies</h2>
+                  <p>
+                    Some cookies may be set by third parties that provide services to us (such as analytics) or that
+                    appear on pages linking to their content. These third parties have their own privacy and cookie
+                    policies. We do not control third-party cookies.
+                  </p>
+                </section>
+                <section>
+                  <h2>Data collected via cookies</h2>
+                  <p>
+                    Cookies may collect device identifiers, IP address, browser type, pages viewed, time spent, and
+                    other usage information. We use this information in aggregated or pseudonymous form where possible.
+                    For details on how we handle personal data collected via cookies, see our Website Privacy Policy.
+                  </p>
+                </section>
+                <section>
+                  <h2>Retention</h2>
+                  <p>
+                    Cookie lifespans vary by type and purpose. Details are available in the cookie settings panel.
+                    Personal data derived from cookies is retained only as long as necessary for the purposes described
+                    or as required by law.
+                  </p>
+                </section>
+                <section>
+                  <h2>Updates to this Cookie Policy</h2>
+                  <p>
+                    We may update this Cookie Policy from time to time. The &quot;Last updated&quot; date indicates
+                    the most recent revision.
+                  </p>
+                </section>
+                <section>
+                  <h2>Contact</h2>
+                  <p>For questions about this Cookie Policy or our use of cookies, please contact us at:</p>
+                  <p>
+                    <a href="mailto:info@synergypm.ae">info@synergypm.ae</a>
+                  </p>
+                </section>
+              </div>
+            ) : isPrivacyRoute ? (
+              <div className="policy-content">
+                <section>
+                  <h2>1. Introduction</h2>
+                  <p>
+                    This Privacy Policy explains how Synergy Project Management LLC (&quot;Synergy&quot;, &quot;we&quot;,
+                    &quot;us&quot;, or &quot;our&quot;) collects, uses, and protects personal data through our
+                    website.
+                  </p>
+                  <p>This Privacy Policy should be read together with our Cookie Policy.</p>
+                </section>
+                <section>
+                  <h2>2. Information We Collect</h2>
+                  <h3>2.1 Information You Provide</h3>
+                  <p>We may collect personal information that you provide to us, including:</p>
+                  <ul>
+                    <li>name, title and company details;</li>
+                    <li>contact information (email address, telephone number);</li>
+                    <li>any information submitted through contact forms or correspondence.</li>
+                  </ul>
+                  <h3>2.2 Information We Collect Automatically</h3>
+                  <p>We may collect information about your visit to our website, including:</p>
+                  <ul>
+                    <li>IP address, browser type and version, operating system;</li>
+                    <li>pages visited, time spent on pages, and navigation paths;</li>
+                    <li>technical and diagnostic data relating to website performance.</li>
+                  </ul>
+                </section>
+                <section>
+                  <h2>3. How We Use Your Information</h2>
+                  <p>We may use your personal data for the following purposes:</p>
+                  <ul>
+                    <li>to respond to enquiries and provide requested information;</li>
+                    <li>to carry out obligations arising from communications or potential engagements;</li>
+                    <li>to improve and optimise our website, including analytics and performance monitoring;</li>
+                    <li>to ensure the security and proper functioning of our website;</li>
+                    <li>to comply with legal and regulatory obligations.</li>
+                  </ul>
+                </section>
+                <section>
+                  <h2>4. Disclosure of Your Information</h2>
+                  <p>We may share your personal data with:</p>
+                  <ul>
+                    <li>service providers supporting our website and IT systems;</li>
+                    <li>professional advisers and consultants;</li>
+                    <li>authorities or regulators where required by law;</li>
+                    <li>third parties in connection with a business transfer, merger, or restructuring.</li>
+                  </ul>
+                  <p>We do not sell or rent your personal data.</p>
+                </section>
+                <section>
+                  <h2>5. Legal Basis for Processing</h2>
+                  <p>We process personal data where necessary:</p>
+                  <ul>
+                    <li>for the performance of a contract or to take steps prior to entering into a contract;</li>
+                    <li>to comply with legal obligations;</li>
+                    <li>for our legitimate business interests, including improving our website and services;</li>
+                    <li>where you have provided consent.</li>
+                  </ul>
+                </section>
+                <section>
+                  <h2>6. Data Security</h2>
+                  <p>We implement appropriate technical and organisational measures to protect personal data.</p>
+                  <p>
+                    However, transmission of information via the internet is not completely secure, and any
+                    transmission is at your own risk.
+                  </p>
+                </section>
+                <section>
+                  <h2>7. Data Retention</h2>
+                  <p>We retain personal data only for as long as necessary:</p>
+                  <ul>
+                    <li>to fulfil the purposes for which it was collected;</li>
+                    <li>to comply with legal and regulatory obligations;</li>
+                    <li>for legitimate business purposes.</li>
+                  </ul>
+                </section>
+                <section>
+                  <h2>8. International Transfers</h2>
+                  <p>
+                    Your personal data may be processed outside the United Arab Emirates where necessary for
+                    operational or technical purposes.
+                  </p>
+                  <p>
+                    We take reasonable steps to ensure that such data is handled securely and in accordance with this
+                    Privacy Policy.
+                  </p>
+                </section>
+                <section>
+                  <h2>9. Your Rights</h2>
+                  <p>Subject to applicable law, you may have the right to:</p>
+                  <ul>
+                    <li>request access to personal data held about you;</li>
+                    <li>request correction of inaccurate data;</li>
+                    <li>request deletion of your data;</li>
+                    <li>restrict or object to certain processing;</li>
+                    <li>request transfer of your data to another organisation.</li>
+                  </ul>
+                  <p>Requests can be made using the contact details below.</p>
+                </section>
+                <section>
+                  <h2>10. Third-Party Links</h2>
+                  <p>Our website may contain links to third-party websites.</p>
+                  <p>We are not responsible for the privacy practices of those websites.</p>
+                </section>
+                <section>
+                  <h2>11. Changes to This Policy</h2>
+                  <p>We may update this Privacy Policy from time to time.</p>
+                  <p>Any changes will be posted on this page.</p>
+                </section>
+                <section>
+                  <h2>12. Contact</h2>
+                  <p>
+                    If you have any questions about this Privacy Policy or how we handle your data, please contact us
+                    at:
+                  </p>
+                  <p>
+                    <a href="mailto:info@synergypm.ae">info@synergypm.ae</a>
+                  </p>
+                </section>
+              </div>
+            ) : (
+              <div className="policy-content">
+                <section>
+                  <h2>{policyTitle}</h2>
+                  <p>Content for this page is being prepared and will be published shortly.</p>
+                </section>
+              </div>
+            )}
+          </section>
+        </main>
+        {sharedFooterSection}
+      </>
     )
   }
 
@@ -2443,7 +3011,15 @@ function App() {
   }
 
   const isUnknownServiceRoute = isServicesRoute && !activeServiceCard && hasLoadedContent
-  const isKnownStaticRoute = isHomeRoute || isProjectsRoute || isAboutRoute || isCareersRoute || isContactRoute
+  const isKnownStaticRoute =
+    isHomeRoute ||
+    isProjectsRoute ||
+    isAboutRoute ||
+    isCareersRoute ||
+    isContactRoute ||
+    isTermsRoute ||
+    isPrivacyRoute ||
+    isCookieRoute
   if (isUnknownServiceRoute || !isKnownStaticRoute) {
     return <NotFoundPage onGoHome={() => navigateWithTransition('/', { replace: true })} />
   }

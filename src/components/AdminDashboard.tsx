@@ -1001,7 +1001,7 @@ function defaultForm(entity: EntityType): Record<string, unknown> {
   const base = { id: '', sort_order: 1, is_active: true }
   if (entity === 'team_members') return { ...base, initials: '', name: '', role: '', bio: '', email: '', number: '', avatar_url: '' }
   if (entity === 'services') return { ...base, title: '', description: '', quote: '', image_url: '', detail_sections: '[]' }
-  if (entity === 'insights') return { ...base, chip: '', date_label: '', title: '', alt_style: false, image_url: '', hero_image_url: '' }
+  if (entity === 'insights') return { ...base, chip: '', date_label: '', title: '', project_description_html: '', alt_style: false, image_url: '', hero_image_url: '' }
   if (entity === 'job_posts') return { ...base, title: '', department: '', summary: '', job_description_html: '', notification_email: '', location_label: '', employment_type: '', workplace_type: '', apply_url: '' }
   return { ...base, kind: 'asset', label: '', value: '', link_url: '', file_path: '', file_url: '' }
 }
@@ -1055,7 +1055,7 @@ function renderFields(
   const fields: Record<EntityType, string[]> = {
     team_members: ['avatar_url', 'initials', 'name', 'role', 'bio', 'email', 'number', 'sort_order', 'is_active'],
     services: ['image_url', 'title', 'description', 'sort_order', 'is_active'],
-    insights: ['image_url', 'hero_image_url', 'chip', 'date_label', 'title', 'alt_style', 'sort_order', 'is_active'],
+    insights: ['image_url', 'hero_image_url', 'chip', 'date_label', 'title', 'project_description_html', 'alt_style', 'sort_order', 'is_active'],
     job_posts: ['title', 'department', 'summary', 'job_description_html', 'notification_email', 'location_label', 'employment_type', 'workplace_type', 'apply_url', 'sort_order', 'is_active'],
     media_items: ['value', 'link_url', 'kind', 'label', 'file_path', 'file_url', 'sort_order', 'is_active'],
   }
@@ -1066,7 +1066,7 @@ function renderFields(
         const isBool = typeof value === 'boolean'
         const isUpload = RECORD_UPLOAD_FIELDS[entity].includes(field)
         const isJsonField = field === 'detail_sections'
-        const isRichText = field === 'job_description_html'
+        const isRichText = field === 'job_description_html' || field === 'project_description_html'
         const isJobSelect =
           entity === 'job_posts' &&
           (field === 'department' ||
@@ -1359,7 +1359,16 @@ function RichTextEditor({ value, onChange }: { value: string; onChange: (value: 
     const editor = editorRef.current
     if (!editor) return
     editor.focus()
-    document.execCommand(command, false, commandValue)
+    if (command === 'formatBlock' && commandValue) {
+      // Some browsers ignore <h2>/<h3> values; try plain tag first.
+      const normalized = commandValue.replace(/[<>]/g, '').toUpperCase()
+      const didApply = document.execCommand(command, false, normalized)
+      if (!didApply) {
+        document.execCommand(command, false, `<${normalized.toLowerCase()}>`)
+      }
+    } else {
+      document.execCommand(command, false, commandValue)
+    }
     onChange(editor.innerHTML)
   }
 
@@ -1376,26 +1385,50 @@ function RichTextEditor({ value, onChange }: { value: string; onChange: (value: 
     run('createLink', href.trim())
   }
 
+  const clearFormatting = () => {
+    const editor = editorRef.current
+    if (!editor) return
+    editor.focus()
+    const selection = window.getSelection()
+    if (!selection || selection.rangeCount === 0) return
+    const range = selection.getRangeAt(0)
+    if (!editor.contains(range.commonAncestorContainer)) return
+    document.execCommand('removeFormat', false)
+    document.execCommand('unlink', false)
+    // Reset current block to paragraph without globally touching the document.
+    document.execCommand('formatBlock', false, 'P')
+    onChange(editor.innerHTML)
+  }
+
   return (
     <div className="admin-rich-editor">
       <div className="admin-rich-toolbar">
         <button type="button" className="admin-btn" {...toolbarAction('bold')}>Bold</button>
         <button type="button" className="admin-btn" {...toolbarAction('italic')}>Italic</button>
         <button type="button" className="admin-btn" {...toolbarAction('underline')}>Underline</button>
-        <button type="button" className="admin-btn" {...toolbarAction('formatBlock', '<h2>')}>H2</button>
-        <button type="button" className="admin-btn" {...toolbarAction('formatBlock', '<h3>')}>H3</button>
-        <button type="button" className="admin-btn" {...toolbarAction('formatBlock', '<p>')}>P</button>
+        <button type="button" className="admin-btn" {...toolbarAction('formatBlock', 'H2')}>H2</button>
+        <button type="button" className="admin-btn" {...toolbarAction('formatBlock', 'H3')}>H3</button>
+        <button type="button" className="admin-btn" {...toolbarAction('formatBlock', 'P')}>P</button>
         <button type="button" className="admin-btn" {...toolbarAction('insertUnorderedList')}>Bullets</button>
         <button type="button" className="admin-btn" {...toolbarAction('insertOrderedList')}>Numbered</button>
         <button type="button" className="admin-btn" onMouseDown={(event) => { event.preventDefault(); createLink() }}>Link</button>
-        <button type="button" className="admin-btn" {...toolbarAction('removeFormat')}>Clear</button>
+        <button
+          type="button"
+          className="admin-btn"
+          onMouseDown={(event) => {
+            event.preventDefault()
+            clearFormatting()
+          }}
+        >
+          Clear
+        </button>
       </div>
       <div
         ref={editorRef}
         className="admin-rich-surface"
         contentEditable
         suppressContentEditableWarning
-        onInput={() => undefined}
+        onInput={(event) => onChange(event.currentTarget.innerHTML)}
         onBlur={(event) => onChange(event.currentTarget.innerHTML)}
       />
     </div>
@@ -1428,6 +1461,7 @@ function formatFieldLabel(field: string) {
     is_active: 'Record Status',
     sort_order: 'Display Order',
     job_description_html: 'Job Description',
+    project_description_html: 'Project Description',
     apply_url: 'Application Link',
     location_label: 'Location',
     workplace_type: 'Workplace Type',
