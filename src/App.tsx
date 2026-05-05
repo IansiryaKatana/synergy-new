@@ -1365,8 +1365,8 @@ function App() {
   ])
 
   useEffect(() => {
-    if (activePathname === '/services' || activePathname === '/services/' || activePathname === '/services/general') {
-      navigateWithTransition('/services/project-management', { replace: true })
+    if (activePathname === '/services/project-management' || activePathname === '/services/general') {
+      navigateWithTransition('/services/', { replace: true })
     }
   }, [activePathname, navigateWithTransition])
 
