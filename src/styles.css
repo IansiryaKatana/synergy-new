@@ -4275,6 +4275,12 @@ h1 {
   align-items: flex-end;
   justify-content: space-between;
   padding: 0.75rem 0.85rem;
+  transition: color 0.2s ease;
+}
+
+.footer-reference-start-card:hover,
+.footer-reference-start-card:focus-visible {
+  color: var(--brand-blue);
 }
 
 .footer-reference-start-card svg {
@@ -4318,6 +4324,12 @@ h1 {
 
 .footer-reference-col a {
   color: rgba(15, 31, 53, 0.86);
+  transition: color 0.2s ease;
+}
+
+.footer-reference-col a:hover,
+.footer-reference-col a:focus-visible {
+  color: var(--brand-blue);
 }
 
 .footer-reference-socials {

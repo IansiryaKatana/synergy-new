@@ -2796,6 +2796,7 @@ function App() {
             <nav className="menu">
               <a href="/" className={navClass('#home')}>Home</a>
               <a href="/services/project-management" className={serviceNavClass()}>Services</a>
+              <a href="/industries" className={industriesNavClass()}>Industries</a>
               <a href="/about-us" className={aboutNavClass()}>About us</a>
               <a href="/careers" className={careersNavClass()}>Careers</a>
               <a href="/contact-us" className={contactNavClass()}>Contact us</a>
@@ -3381,6 +3382,9 @@ function App() {
             onClick={() => setIsMobileMenuOpen(false)}
           >
             Services
+          </a>
+          <a href="/industries" className={industriesNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
+            Industries
           </a>
           <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
             About us
