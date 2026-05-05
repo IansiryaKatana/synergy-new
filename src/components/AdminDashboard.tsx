@@ -62,7 +62,7 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
   { id: 'smtp', label: 'SMTP Secrets', href: '/backend/smtp', icon: Globe },
   { id: 'team', label: 'Team', href: '/backend/team', icon: Users },
   { id: 'services', label: 'Services', href: '/backend/services', icon: Briefcase },
-  { id: 'insights', label: 'Projects', href: '/backend/insights', icon: ChartNoAxesColumn },
+  { id: 'insights', label: 'Insights', href: '/backend/insights', icon: ChartNoAxesColumn },
   { id: 'careers', label: 'Careers', href: '/backend/careers', icon: Briefcase },
   { id: 'media', label: 'Media', href: '/backend/media', icon: GalleryVerticalEnd },
 ]
@@ -83,7 +83,7 @@ const BRANDING_FIELD_GROUPS: Array<{ id: BrandingTab; label: string; fields: str
   {
     id: 'media',
     label: 'Backgrounds',
-    fields: ['homepage_team_background_url', 'services_hero_background_url', 'about_hero_background_url', 'contact_hero_background_url'],
+    fields: ['homepage_team_background_url', 'services_hero_background_url', 'about_hero_background_url', 'contact_hero_background_url', 'industries_hero_background_url'],
   },
 ]
 
@@ -95,6 +95,7 @@ const BRANDING_MEDIA_FIELDS = new Set([
   'services_hero_background_url',
   'about_hero_background_url',
   'contact_hero_background_url',
+  'industries_hero_background_url',
 ])
 
 const JOB_FIELD_OPTIONS: Record<string, string[]> = {
@@ -122,6 +123,7 @@ const ENTITY_EDITOR_LABELS: Record<EntityType, string> = {
 
 export function AdminDashboard(props: AdminProps) {
   const mainScrollRef = useRef<HTMLElement | null>(null)
+  const mediaUploadInputRef = useRef<HTMLInputElement | null>(null)
   const [entity, setEntity] = useState<EntityType>(PAGE_TO_ENTITY[props.page] ?? 'team_members')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
@@ -136,10 +138,13 @@ export function AdminDashboard(props: AdminProps) {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [selectedMediaUrl, setSelectedMediaUrl] = useState('')
   const [mediaSheetTab, setMediaSheetTab] = useState<'upload' | 'library'>('library')
+  const [mediaLibrarySearch, setMediaLibrarySearch] = useState('')
+  const [isUploadDragActive, setIsUploadDragActive] = useState(false)
   const [actionRow, setActionRow] = useState<any | null>(null)
   const [detailRow, setDetailRow] = useState<any | null>(null)
   const [mediaView, setMediaView] = useState<'table' | 'grid'>('table')
   const [currentPage, setCurrentPage] = useState(1)
+  const [teamSearch, setTeamSearch] = useState('')
   const [scrollProgress, setScrollProgress] = useState(0)
   const [formValues, setFormValues] = useState<Record<string, unknown>>({})
   const [serviceEditorTab, setServiceEditorTab] = useState<'general' | 'details'>('general')
@@ -180,16 +185,41 @@ export function AdminDashboard(props: AdminProps) {
     return hasId ? `Edit ${noun}` : `Create ${noun}`
   }, [entity, formValues.id])
 
+  const filteredRows = useMemo(() => {
+    if (entity !== 'team_members') return rows
+    const query = teamSearch.trim().toLowerCase()
+    if (!query) return rows
+    return rows.filter((row: any) => {
+      const haystack = [
+        String(row.name ?? ''),
+        String(row.role ?? ''),
+        String(row.email ?? ''),
+        String(row.initials ?? ''),
+        String(row.id ?? ''),
+      ]
+        .join(' ')
+        .toLowerCase()
+      return haystack.includes(query)
+    })
+  }, [entity, rows, teamSearch])
+
+  const filteredMediaFiles = useMemo(() => {
+    const query = mediaLibrarySearch.trim().toLowerCase()
+    if (!query) return mediaFiles
+    return mediaFiles.filter((item) => item.path.toLowerCase().includes(query) || item.publicUrl.toLowerCase().includes(query))
+  }, [mediaFiles, mediaLibrarySearch])
+
   const perPage = useMemo(() => {
+    if (entity === 'team_members') return 10
     if (entity === 'media_items') return mediaView === 'grid' ? 20 : 12
     return 12
   }, [entity, mediaView])
 
-  const totalPages = Math.max(1, Math.ceil(rows.length / perPage))
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / perPage))
   const pagedRows = useMemo(() => {
     const start = (currentPage - 1) * perPage
-    return rows.slice(start, start + perPage)
-  }, [rows, currentPage, perPage])
+    return filteredRows.slice(start, start + perPage)
+  }, [filteredRows, currentPage, perPage])
 
   useEffect(() => {
     setEntity(PAGE_TO_ENTITY[props.page] ?? 'team_members')
@@ -201,7 +231,7 @@ export function AdminDashboard(props: AdminProps) {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [entity, mediaView, rows.length])
+  }, [entity, mediaView, rows.length, teamSearch])
 
   useEffect(() => {
     const onScroll = () => {
@@ -351,6 +381,17 @@ export function AdminDashboard(props: AdminProps) {
   }, [mediaSheetOpen])
 
   useEffect(() => {
+    if (mediaSheetOpen) return
+    setPendingUploadFile(null)
+    setPendingUploadPreviewUrl('')
+    setUploadProgress(0)
+    setSelectedMediaUrl('')
+    setMediaLibrarySearch('')
+    setMediaSheetTab('library')
+    setIsUploadDragActive(false)
+  }, [mediaSheetOpen])
+
+  useEffect(() => {
     return () => {
       if (pendingUploadPreviewUrl) URL.revokeObjectURL(pendingUploadPreviewUrl)
     }
@@ -390,8 +431,27 @@ export function AdminDashboard(props: AdminProps) {
     }
   }, [isMobileSidebarOpen])
 
+  const openMediaPicker = (scope: 'record' | 'branding', field: string, tab: 'upload' | 'library' = 'library') => {
+    setUploadTargetScope(scope)
+    setTargetUploadField(field)
+    setMediaSheetTab(tab)
+    setMediaSheetOpen(true)
+  }
+
   const pickMedia = (url: string) => {
     setSelectedMediaUrl(url)
+  }
+
+  const handlePendingUploadFile = (file: File | null) => {
+    if (saving) return
+    if (pendingUploadPreviewUrl) URL.revokeObjectURL(pendingUploadPreviewUrl)
+    setPendingUploadFile(file)
+    setUploadProgress(0)
+    setPendingUploadPreviewUrl(file ? URL.createObjectURL(file) : '')
+    if (file) {
+      setMediaSheetTab('upload')
+      void uploadMedia(file)
+    }
   }
 
   const applySelectedMedia = () => {
@@ -422,17 +482,29 @@ export function AdminDashboard(props: AdminProps) {
         is_active: true,
       }
       await contentApi.upsertRow('media_items', mediaPayload)
-      if (targetUploadField && uploadTargetScope === 'branding') {
-        setBrandingForm((prev) => ({ ...prev, [targetUploadField]: uploaded.publicUrl }))
-      }
-      if (targetUploadField && uploadTargetScope === 'record') {
-        setFormValues((prev) => ({ ...prev, [targetUploadField]: uploaded.publicUrl }))
-      }
       await refreshMedia()
-      await props.onRefresh()
-      setPendingUploadFile(null)
-      setPendingUploadPreviewUrl('')
-      setUploadProgress(0)
+      if (targetUploadField) {
+        if (uploadTargetScope === 'branding') {
+          const nextBrandingForm = {
+            ...brandingForm,
+            [targetUploadField]: uploaded.publicUrl,
+          }
+          setBrandingForm(nextBrandingForm)
+          await persistBranding(nextBrandingForm)
+        } else {
+          setFormValues((prev) => ({ ...prev, [targetUploadField]: uploaded.publicUrl }))
+        }
+        await props.onRefresh()
+        setSelectedMediaUrl('')
+        setMediaSheetOpen(false)
+        setStatus('Media uploaded and applied.')
+      } else {
+        await props.onRefresh()
+        setSelectedMediaUrl(uploaded.publicUrl)
+        setMediaSheetTab('library')
+        setStatus('Media uploaded. Confirm with "Use this media".')
+      }
+      handlePendingUploadFile(null)
     } catch (err) {
       setStatus(err instanceof Error ? err.message : 'Upload failed.')
     }
@@ -442,7 +514,7 @@ export function AdminDashboard(props: AdminProps) {
   const saveBranding = async () => {
     setSaving(true)
     try {
-      await contentApi.upsertRow('branding_content', brandingForm)
+      await persistBranding(brandingForm)
       setStatus('Branding content saved.')
       await props.onRefresh()
     } catch (err) {
@@ -467,6 +539,75 @@ export function AdminDashboard(props: AdminProps) {
       setSmtpStatus(err instanceof Error ? err.message : 'Failed to save SMTP settings.')
     }
     setSaving(false)
+  }
+
+  const uploadAndRegisterMedia = async (file: File) => {
+    const uploaded = await contentApi.uploadMedia(file, 'admin')
+    await contentApi.upsertRow('media_items', {
+      id: `asset-${Date.now()}`,
+      kind: 'asset',
+      label: file.name,
+      value: uploaded.publicUrl,
+      file_path: uploaded.path,
+      file_url: uploaded.publicUrl,
+      sort_order: Math.floor(Date.now() / 1000),
+      is_active: true,
+    })
+    return uploaded.publicUrl
+  }
+
+  const uploadRecordFieldFile = async (field: string, file: File) => {
+    setSaving(true)
+    try {
+      const publicUrl = await uploadAndRegisterMedia(file)
+      setFormValues((prev) => ({ ...prev, [field]: publicUrl }))
+      setStatus('Media uploaded and field updated.')
+      await props.onRefresh()
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : 'Upload failed.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const uploadBrandingFieldFile = async (field: string, file: File) => {
+    setSaving(true)
+    try {
+      const publicUrl = await uploadAndRegisterMedia(file)
+      const nextBrandingForm = {
+        ...brandingForm,
+        [field]: publicUrl,
+      }
+      setBrandingForm(nextBrandingForm)
+      await persistBranding(nextBrandingForm)
+      setStatus('Media uploaded and branding field updated.')
+      await props.onRefresh()
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : 'Upload failed.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const persistBranding = async (payload: Record<string, string | number | boolean>) => {
+    try {
+      await contentApi.upsertRow('branding_content', payload)
+      return
+    } catch (err) {
+      const message = err instanceof Error ? err.message : ''
+      const missingIndustriesColumn =
+        message.includes('industries_hero_background_url') &&
+        (message.toLowerCase().includes('column') || message.toLowerCase().includes('schema cache'))
+
+      if (!missingIndustriesColumn) throw err
+
+      const fallbackPayload = { ...payload }
+      delete (fallbackPayload as Record<string, unknown>).industries_hero_background_url
+      await contentApi.upsertRow('branding_content', fallbackPayload)
+      setStatus(
+        'Branding saved without Industries background. Run the latest Supabase migration to enable industries_hero_background_url.',
+      )
+    }
   }
 
   return (
@@ -585,12 +726,7 @@ export function AdminDashboard(props: AdminProps) {
                             onChange={(event) => {
                               const file = event.target.files?.[0]
                               if (!file) return
-                              const reader = new FileReader()
-                              reader.onload = () => {
-                                const result = String(reader.result ?? '')
-                                if (result) setBrandingForm((prev) => ({ ...prev, [field]: result }))
-                              }
-                              reader.readAsDataURL(file)
+                              void uploadBrandingFieldFile(field, file)
                               event.currentTarget.value = ''
                             }}
                           />
@@ -604,10 +740,7 @@ export function AdminDashboard(props: AdminProps) {
                           type="button"
                           className="admin-browse-icon"
                           onClick={() => {
-                            setUploadTargetScope('branding')
-                            setTargetUploadField(field)
-                            setMediaSheetTab('library')
-                            setMediaSheetOpen(true)
+                            openMediaPicker('branding', field, 'library')
                           }}
                           title="Browse media library"
                         >
@@ -689,6 +822,18 @@ export function AdminDashboard(props: AdminProps) {
                   <button className="admin-btn" disabled={saving || selectedIds.length === 0} onClick={() => bulkSetActive(false)}>Bulk deactivate</button>
                   <button className="admin-btn admin-btn-danger" disabled={saving || selectedIds.length === 0} onClick={bulkDelete}>Bulk delete</button>
                 </div>
+                {props.page === 'team' ? (
+                  <div className="admin-search-wrap">
+                    <input
+                      type="search"
+                      className="admin-search-input"
+                      value={teamSearch}
+                      onChange={(event) => setTeamSearch(event.target.value)}
+                      placeholder="Search team member by name, role, email..."
+                      aria-label="Search team members"
+                    />
+                  </div>
+                ) : null}
                 {props.page === 'media' ? (
                   <div className="admin-actions admin-actions-secondary">
                     <button className={`admin-btn ${mediaView === 'table' ? 'admin-btn-primary' : ''}`} onClick={() => setMediaView('table')}>
@@ -760,7 +905,7 @@ export function AdminDashboard(props: AdminProps) {
                 </table>
               </section>
             )}
-            {rows.length > perPage ? (
+            {filteredRows.length > perPage ? (
               <div className="admin-pagination">
                 <button
                   className="admin-btn"
@@ -813,20 +958,14 @@ export function AdminDashboard(props: AdminProps) {
               </div>
               {serviceEditorTab === 'general'
                 ? renderFields(entity, formValues, setFormValues, (field) => {
-                    setUploadTargetScope('record')
-                    setTargetUploadField(field)
-                    setMediaSheetTab('library')
-                    setMediaSheetOpen(true)
-                  })
+                    openMediaPicker('record', field, 'library')
+                  }, uploadRecordFieldFile)
                 : renderServiceDetailsEditor(formValues, setFormValues)}
             </>
           ) : (
             renderFields(entity, formValues, setFormValues, (field) => {
-              setUploadTargetScope('record')
-              setTargetUploadField(field)
-              setMediaSheetTab('library')
-              setMediaSheetOpen(true)
-            })
+              openMediaPicker('record', field, 'library')
+            }, uploadRecordFieldFile)
           )}
         </div>
         <div className="admin-editor-foot">
@@ -839,7 +978,14 @@ export function AdminDashboard(props: AdminProps) {
       <div className={`admin-editor-overlay ${mediaSheetOpen ? 'open' : ''}`} onClick={() => setMediaSheetOpen(false)} />
       <section className={`admin-media-sheet ${mediaSheetOpen ? 'open' : ''}`}>
         <div className="admin-editor-head">
-          <h3>Media Library</h3>
+          <div className="admin-media-head-copy">
+            <h3>Select Media</h3>
+            {targetUploadField ? (
+              <p>
+                Updating: <strong>{formatFieldLabel(targetUploadField)}</strong>
+              </p>
+            ) : null}
+          </div>
           <button onClick={() => setMediaSheetOpen(false)}>Close</button>
         </div>
         <div className="admin-media-tabs">
@@ -858,34 +1004,40 @@ export function AdminDashboard(props: AdminProps) {
         </div>
         {mediaSheetTab === 'upload' ? (
           <>
-            <label className="admin-upload">
-              Upload file
+            <div
+              className={`admin-upload-dropzone ${isUploadDragActive ? 'drag-active' : ''}`}
+              onDragOver={(event) => {
+                event.preventDefault()
+                setIsUploadDragActive(true)
+              }}
+              onDragLeave={() => setIsUploadDragActive(false)}
+              onDrop={(event) => {
+                event.preventDefault()
+                setIsUploadDragActive(false)
+                const droppedFile = event.dataTransfer.files?.[0] ?? null
+                handlePendingUploadFile(droppedFile)
+              }}
+            >
+              <p>Drag and drop media here</p>
+              <span>or</span>
+              <button
+                type="button"
+                className="admin-btn"
+                onClick={() => mediaUploadInputRef.current?.click()}
+              >
+                Browse files
+              </button>
               <input
+                ref={mediaUploadInputRef}
                 type="file"
                 accept="image/*,video/*"
-                onChange={(event) => {
-                  const file = event.target.files?.[0]
-                  setPendingUploadFile(file ?? null)
-                  setUploadProgress(0)
-                  if (file) {
-                    setPendingUploadPreviewUrl(URL.createObjectURL(file))
-                  } else {
-                    setPendingUploadPreviewUrl('')
-                  }
-                }}
+                className="admin-upload-input-hidden"
+                onChange={(event) => handlePendingUploadFile(event.target.files?.[0] ?? null)}
               />
-            </label>
+            </div>
             <div className="admin-media-upload-actions">
               <span>{pendingUploadFile ? pendingUploadFile.name : 'No file selected'}</span>
-              <button
-                className="admin-btn admin-btn-primary"
-                disabled={!pendingUploadFile || saving}
-                onClick={() => {
-                  if (pendingUploadFile) void uploadMedia(pendingUploadFile)
-                }}
-              >
-                Upload selected file
-              </button>
+              <span>{saving && pendingUploadFile ? 'Uploading automatically...' : 'Upload starts automatically'}</span>
             </div>
             {pendingUploadFile ? (
               <div className="admin-upload-preview-sheet">
@@ -899,14 +1051,20 @@ export function AdminDashboard(props: AdminProps) {
             ) : null}
           </>
         ) : null}
-        {targetUploadField ? (
-          <p className="admin-upload-target">
-            Target field: <strong>{formatFieldLabel(targetUploadField)}</strong>
-          </p>
-        ) : null}
         {mediaSheetTab === 'library' ? (
-          <div className="admin-media-grid">
-            {mediaFiles.map((item) => (
+          <>
+            <div className="admin-media-library-toolbar">
+              <input
+                type="search"
+                className="admin-search-input"
+                placeholder="Search media library..."
+                value={mediaLibrarySearch}
+                onChange={(event) => setMediaLibrarySearch(event.target.value)}
+                aria-label="Search media library"
+              />
+            </div>
+            <div className="admin-media-grid">
+            {filteredMediaFiles.map((item) => (
               <button
                 key={item.path}
                 className={`admin-media-item ${selectedMediaUrl === item.publicUrl ? 'selected' : ''}`}
@@ -916,7 +1074,11 @@ export function AdminDashboard(props: AdminProps) {
                 <span>{item.path}</span>
               </button>
             ))}
-          </div>
+            {filteredMediaFiles.length === 0 ? (
+              <p className="admin-upload-target">No media files match your search.</p>
+            ) : null}
+            </div>
+          </>
         ) : null}
         <div className="admin-editor-foot">
           <button className="admin-btn" onClick={() => setMediaSheetOpen(false)}>Cancel</button>
@@ -1051,6 +1213,7 @@ function renderFields(
   formValues: Record<string, unknown>,
   setFormValues: Dispatch<SetStateAction<Record<string, unknown>>>,
   openMedia: (field: string) => void,
+  uploadFieldFile?: (field: string, file: File) => Promise<void>,
 ) {
   const fields: Record<EntityType, string[]> = {
     team_members: ['avatar_url', 'initials', 'name', 'role', 'bio', 'email', 'number', 'sort_order', 'is_active'],
@@ -1137,12 +1300,16 @@ function renderFields(
                           onChange={(event) => {
                             const file = event.target.files?.[0]
                             if (!file) return
-                            const reader = new FileReader()
-                            reader.onload = () => {
-                              const result = String(reader.result ?? '')
-                              if (result) setFormValues((prev) => ({ ...prev, [field]: result }))
+                            if (uploadFieldFile) {
+                              void uploadFieldFile(field, file)
+                            } else {
+                              const reader = new FileReader()
+                              reader.onload = () => {
+                                const result = String(reader.result ?? '')
+                                if (result) setFormValues((prev) => ({ ...prev, [field]: result }))
+                              }
+                              reader.readAsDataURL(file)
                             }
-                            reader.readAsDataURL(file)
                             event.currentTarget.value = ''
                           }}
                         />

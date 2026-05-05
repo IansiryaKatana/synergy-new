@@ -120,12 +120,13 @@ alter table branding_content add column if not exists homepage_team_background_u
 alter table branding_content add column if not exists services_hero_background_url text;
 alter table branding_content add column if not exists about_hero_background_url text;
 alter table branding_content add column if not exists contact_hero_background_url text;
+alter table branding_content add column if not exists industries_hero_background_url text;
 
 insert into branding_content (
   id, company_name, hero_eyebrow, hero_title, hero_subtitle, services_title,
   services_description, team_title, insights_title, insights_description,
   footer_address, footer_newsletter_title, footer_pitch, footer_wordmark, footer_email, logo_url, favicon_url,
-  homepage_hero_video_url, homepage_team_background_url, services_hero_background_url, about_hero_background_url, contact_hero_background_url
+  homepage_hero_video_url, homepage_team_background_url, services_hero_background_url, about_hero_background_url, contact_hero_background_url, industries_hero_background_url
 ) values (
   'default', 'Synergy Project Management', 'Synergy Project Management',
   'Your growth partner for companies ready to scale.',
@@ -140,6 +141,7 @@ insert into branding_content (
   'Stalled revenue, leaky funnels, stretched leadership. Whatever is holding you back, let''s solve it.',
   'synergy',
   'Info@synergypm.ae',
+  null,
   null,
   null,
   null,
@@ -168,7 +170,8 @@ insert into branding_content (
   homepage_team_background_url = excluded.homepage_team_background_url,
   services_hero_background_url = excluded.services_hero_background_url,
   about_hero_background_url = excluded.about_hero_background_url,
-  contact_hero_background_url = excluded.contact_hero_background_url;
+  contact_hero_background_url = excluded.contact_hero_background_url,
+  industries_hero_background_url = excluded.industries_hero_background_url;
 
 update team_members
 set is_active = false
@@ -266,10 +269,10 @@ on conflict (id) do update set
 tag = excluded.tag, title = excluded.title, description = excluded.description, quote = excluded.quote, image_url = excluded.image_url, detail_sections = excluded.detail_sections, sort_order = excluded.sort_order, is_active = excluded.is_active;
 
 insert into insights (id, chip, date_label, title, image_url, alt_style, sort_order, is_active) values
-('insight-1','Status: Completed, December 2020','Location: Jumeirah Village Circle, Dubai','G + 14 Hotel Apartment',null,false,1,true),
-('insight-2','Status: Completed, 2016','Location: Dubai Sports City, Dubai','G + 20 Hotel Apartment',null,true,2,true),
-('insight-3','Status: Under Construction','Location: Jumeirah Village Circle, Dubai','G + 11 Hotel Apartment',null,false,3,true),
-('insight-4','Status: Ongoing','Location: UAE','Major Hospital Project',null,true,4,true)
+('insight-1','Status: Completed, December 2020','Location: Giovanni Boutique suites','G + 14 Hotel Apartment',null,false,1,true),
+('insight-2','Status: Completed, 2016','Location: Giovanni Boutique suites','G + 20 Hotel Apartment',null,true,2,true),
+('insight-3','Status: Under Construction','Location: Giovanni Boutique suites','G + 11 Hotel Apartment',null,false,3,true),
+('insight-4','Status: Ongoing','Location: Giovanni Boutique suites','Major Hospital Project',null,true,4,true)
 on conflict (id) do update set
 chip = excluded.chip, date_label = excluded.date_label, title = excluded.title, image_url = excluded.image_url, alt_style = excluded.alt_style, sort_order = excluded.sort_order, is_active = excluded.is_active;
 

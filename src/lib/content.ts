@@ -119,6 +119,7 @@ export type BrandingContent = {
   services_hero_background_url?: string | null
   about_hero_background_url?: string | null
   contact_hero_background_url?: string | null
+  industries_hero_background_url?: string | null
 }
 
 export type SiteContent = {
@@ -158,6 +159,7 @@ const fallback: SiteContent = {
     services_hero_background_url: null,
     about_hero_background_url: null,
     contact_hero_background_url: null,
+    industries_hero_background_url: null,
   },
   team: [
     { id: 'anish-vettuvelil', initials: 'AN', name: 'Anish Vettuvelil', role: 'Chief Financial Officer', number: '01', email: 'anish.vettuvelil@synergypm.com', bio: 'Leads financial planning, budgeting, and controls to support sustainable project growth.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 1, is_active: true },
@@ -311,10 +313,10 @@ const fallback: SiteContent = {
     },
   ],
   insights: [
-    { id: 'insight-1', chip: 'Status: Completed, December 2020', date_label: 'Location: Jumeirah Village Circle, Dubai', title: 'G + 14 Hotel Apartment', alt_style: false, sort_order: 1, is_active: true },
-    { id: 'insight-2', chip: 'Status: Completed, 2016', date_label: 'Location: Dubai Sports City, Dubai', title: 'G + 20 Hotel Apartment', alt_style: true, sort_order: 2, is_active: true },
-    { id: 'insight-3', chip: 'Status: Under Construction', date_label: 'Location: Jumeirah Village Circle, Dubai', title: 'G + 11 Hotel Apartment', alt_style: false, sort_order: 3, is_active: true },
-    { id: 'insight-4', chip: 'Status: Ongoing', date_label: 'Location: UAE', title: 'Major Hospital Project', alt_style: true, sort_order: 4, is_active: true },
+    { id: 'insight-1', chip: 'Status: Completed, December 2020', date_label: 'Location: Giovanni Boutique suites', title: 'G + 14 Hotel Apartment', alt_style: false, sort_order: 1, is_active: true },
+    { id: 'insight-2', chip: 'Status: Completed, 2016', date_label: 'Location: Giovanni Boutique suites', title: 'G + 20 Hotel Apartment', alt_style: true, sort_order: 2, is_active: true },
+    { id: 'insight-3', chip: 'Status: Under Construction', date_label: 'Location: Giovanni Boutique suites', title: 'G + 11 Hotel Apartment', alt_style: false, sort_order: 3, is_active: true },
+    { id: 'insight-4', chip: 'Status: Ongoing', date_label: 'Location: Giovanni Boutique suites', title: 'Major Hospital Project', alt_style: true, sort_order: 4, is_active: true },
   ],
   media: [
     { id: 'trust-1', kind: 'trust', label: 'Venice', value: 'Venice', sort_order: 1, is_active: true },

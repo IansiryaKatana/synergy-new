@@ -13,9 +13,13 @@ import { EditorContent, useEditor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import PhoneInputLib from 'react-phone-input-2'
 import 'react-phone-input-2/lib/style.css'
+import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { AdminDashboard, type AdminPage } from './components/AdminDashboard'
 import Noise from './components/Noise'
 import { contentApi, type JobPost, type ServiceItem, type SiteContent, type TeamMember } from './lib/content'
+
+gsap.registerPlugin(ScrollTrigger)
 
 type DialogMode = 'none' | 'book'
 type PhoneInputProps = {
@@ -310,7 +314,6 @@ function App() {
   const [isSubmittingJobApplication, setIsSubmittingJobApplication] = useState(false)
   const [jobApplicationStatus, setJobApplicationStatus] = useState('')
   const [showCareersReturnHeader, setShowCareersReturnHeader] = useState(false)
-  const [aboutServicesIndex, setAboutServicesIndex] = useState(0)
   const [aboutTeamIndex, setAboutTeamIndex] = useState(0)
   const [viewportWidth, setViewportWidth] = useState(
     typeof window !== 'undefined' ? window.innerWidth : 1280,
@@ -336,6 +339,9 @@ function App() {
   const sixthSceneRef = useRef<HTMLElement | null>(null)
   const insightsSceneRef = useRef<HTMLElement | null>(null)
   const footerSceneRef = useRef<HTMLElement | null>(null)
+  const industriesPageRef = useRef<HTMLElement | null>(null)
+  const industriesAboutRef = useRef<HTMLElement | null>(null)
+  const industriesListRef = useRef<HTMLElement | null>(null)
   const careerCvInputRef = useRef<HTMLInputElement | null>(null)
   const lastScrollYRef = useRef(0)
   const careersLastScrollRef = useRef(0)
@@ -420,15 +426,7 @@ function App() {
       })),
     [siteContent.services],
   )
-  const aboutServiceCards = serviceCards.length > 0
-    ? serviceCards
-    : contentApi.fallback.services.map((service) => ({
-        ...service,
-        href: resolveServiceHref(service),
-      }))
-  const aboutVisibleCards = 1
-  const aboutMaxSlideIndex = Math.max(0, aboutServiceCards.length - aboutVisibleCards)
-  const aboutTeamMembers = siteContent.team.length > 0 ? siteContent.team : contentApi.fallback.team
+  const aboutTeamMembers = siteContent.team
   const aboutTeamVisibleCards = isMobileViewport ? 1 : viewportWidth >= 1440 ? 4 : viewportWidth >= 1024 ? 3 : 2
   const aboutTeamMaxSlideIndex = Math.max(0, aboutTeamMembers.length - aboutTeamVisibleCards)
   const aboutTeamVisualDotCount = 4
@@ -563,13 +561,6 @@ function App() {
       return Math.min(previous, projectHeroItems.length - 1)
     })
   }, [projectHeroItems.length])
-
-  useEffect(() => {
-    setAboutServicesIndex((previous) => {
-      if (aboutServiceCards.length === 0) return 0
-      return Math.min(previous, aboutMaxSlideIndex)
-    })
-  }, [aboutMaxSlideIndex, aboutServiceCards.length])
 
   useEffect(() => {
     setAboutTeamIndex((previous) => {
@@ -806,6 +797,7 @@ function App() {
   const isServicesRoute = activePathname.startsWith('/services')
   const isProjectsRoute = activePathname === '/projects' || activePathname.startsWith('/projects/')
   const isAboutRoute = activePathname === '/about-us' || activePathname.startsWith('/about-us/')
+  const isIndustriesRoute = activePathname === '/industries' || activePathname.startsWith('/industries/')
   const isTermsRoute = activePathname === '/terms-of-use' || activePathname.startsWith('/terms-of-use/')
   const isPrivacyRoute = activePathname === '/privacy-policy' || activePathname.startsWith('/privacy-policy/')
   const isCookieRoute = activePathname === '/cookie-policy' || activePathname.startsWith('/cookie-policy/')
@@ -816,8 +808,8 @@ function App() {
     activePathname.startsWith('/career/')
   const isContactRoute = activePathname === '/contact-us' || activePathname.startsWith('/contact-us/')
   const serviceNavClass = () => (isServicesRoute ? 'active' : '')
-  const projectNavClass = () => (isProjectsRoute ? 'active' : '')
   const aboutNavClass = () => (isAboutRoute ? 'active' : '')
+  const industriesNavClass = () => (isIndustriesRoute ? 'active' : '')
   const careersNavClass = () => (isCareersRoute ? 'active' : '')
   const contactNavClass = () => (isContactRoute ? 'active' : '')
   const [careersDepartment, setCareersDepartment] = useState('View all')
@@ -884,6 +876,52 @@ function App() {
     siteContent.branding.services_hero_background_url?.trim() ||
     siteContent.branding.about_hero_background_url?.trim() ||
     ''
+  const industriesHeroImage =
+    siteContent.branding.industries_hero_background_url?.trim() ||
+    fallbackServiceCardImage ||
+    '/SYNERGY logo.png'
+  const industriesSectors = [
+    {
+      title: 'Product Distribution',
+      description:
+        'We operate a scalable distribution network built for speed, consistency, and market reach. From sourcing to last-mile delivery, we manage the full lifecycle of product movement, ensuring brands reach the right retailers efficiently. Our systems-driven approach provides real-time visibility, performance tracking, and reliable supply across regions.',
+    },
+    {
+      title: 'Student Accommodation',
+      description:
+        'We develop and manage modern student living experiences designed for comfort, security, and long-term value. From property operations to booking systems and tenant engagement, we handle the full ecosystem. Our focus is on delivering seamless occupancy, strong retention, and a lifestyle that meets evolving student expectations.',
+    },
+    {
+      title: 'Systems & Web Development',
+      description:
+        'We design and build powerful digital infrastructure that businesses rely on daily. From custom web platforms to CRMs and automation systems, our solutions are engineered for performance, scalability, and integration. Every system we create is tailored to streamline operations, improve visibility, and support growth.',
+    },
+    {
+      title: 'Marketing',
+      description:
+        'We drive measurable growth through strategy, data-led marketing. Our approach combines performance campaigns, brand positioning, and customer journey optimization to generate consistent results. From awareness to conversion, we build marketing systems that scale alongside the business.',
+    },
+    {
+      title: 'Design',
+      description:
+        'We create refined visual and digital experiences that elevate brands. Our design work spans UI/UX, brand identity, and high-end creative assets, all crafted with clarity and intention. Every output is aligned with business goals, ensuring aesthetics translate into real engagement and impact.',
+    },
+    {
+      title: 'Retail',
+      description:
+        'We build and operate retail brands with a focus on product quality, positioning, and customer experience. From concept to market launch, we manage the full retail lifecycle, including sourcing, branding, and sales channels. Our goal is to create products that resonate and perform in competitive markets.',
+    },
+    {
+      title: 'Industry Development & Operations',
+      description:
+        'Beyond individual sectors, we actively build, manage, and scale businesses across multiple industries. Our role extends from strategy and setup to execution and optimization, allowing us to create structured, high-performing operations in each vertical we enter.',
+    },
+    {
+      title: 'Construction',
+      description:
+        'We oversee the planning and execution of construction projects with a focus on quality, efficiency, and long-term value. From initial concept through to delivery, we coordinate design, procurement, and build processes to ensure projects are completed on time and to specification. Our approach combines structured project management with trusted partnerships, enabling us to deliver spaces that meet both functional and investment objectives.',
+    },
+  ]
   const teamSectionStyle = siteContent.branding.homepage_team_background_url
     ? ({
         backgroundImage:
@@ -952,6 +990,105 @@ function App() {
       window.removeEventListener('resize', onCareersScroll)
     }
   }, [isCareersRoute])
+
+  useEffect(() => {
+    if (!isIndustriesRoute) return
+    if (typeof window === 'undefined') return
+    if (!industriesPageRef.current) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    const context = gsap.context(() => {
+      const heroCard = industriesPageRef.current?.querySelector('.industries-hero-card')
+      const heroHeadline = industriesPageRef.current?.querySelector('.industries-hero-headline')
+      const heroHeadlineLines = industriesPageRef.current?.querySelectorAll('.industries-hero-headline h1 span')
+      const heroLead = industriesPageRef.current?.querySelector('.industries-hero-headline p')
+      const aboutKicker = industriesAboutRef.current?.querySelector('.industries-about-kicker')
+      const aboutMain = industriesAboutRef.current?.querySelector('.industries-about-main')
+      const aboutStats = industriesAboutRef.current?.querySelectorAll('.industries-about-stats > div')
+      const listRows = industriesListRef.current?.querySelectorAll('.industries-list-row')
+
+      if (heroCard && heroHeadline) {
+        gsap.fromTo(
+          [heroCard, heroHeadline],
+          { y: 44, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.9, stagger: 0.12, ease: 'power3.out' },
+        )
+      }
+      if (heroHeadlineLines && heroHeadlineLines.length > 0) {
+        gsap.fromTo(
+          heroHeadlineLines,
+          { yPercent: 125, opacity: 0 },
+          { yPercent: 0, opacity: 1, duration: 0.88, stagger: 0.1, ease: 'power4.out', delay: 0.15 },
+        )
+      }
+      if (heroLead) {
+        gsap.fromTo(
+          heroLead,
+          { y: 24, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.75, ease: 'power2.out', delay: 0.26 },
+        )
+      }
+      if (aboutKicker || aboutMain) {
+        gsap.fromTo(
+          [aboutKicker, aboutMain],
+          { y: 50, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.88,
+            stagger: 0.14,
+            ease: 'power3.out',
+            scrollTrigger: {
+              trigger: industriesAboutRef.current,
+              start: 'top 78%',
+              once: true,
+            },
+          },
+        )
+      }
+      if (aboutStats && aboutStats.length > 0) {
+        gsap.fromTo(
+          aboutStats,
+          { y: 30, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.72,
+            stagger: 0.12,
+            ease: 'power2.out',
+            scrollTrigger: {
+              trigger: industriesAboutRef.current,
+              start: 'top 72%',
+              once: true,
+            },
+          },
+        )
+      }
+      if (listRows && listRows.length > 0) {
+        listRows.forEach((row) => {
+          gsap.fromTo(
+            row,
+            { y: 56, opacity: 0 },
+            {
+              y: 0,
+              opacity: 1,
+              duration: 0.78,
+              ease: 'power3.out',
+              scrollTrigger: {
+                trigger: row,
+                start: 'top 86%',
+                once: true,
+              },
+            },
+          )
+        })
+      }
+    }, industriesPageRef)
+
+    return () => {
+      context.revert()
+    }
+  }, [isIndustriesRoute])
   const navigateToContact = () => {
     navigateWithTransition('/contact-us')
     setIsMobileMenuOpen(false)
@@ -1117,6 +1254,11 @@ function App() {
       pageDescription = clampMetaDescription(
         'Learn about Synergy Project Management, our multidisciplinary team, and how we align departments into one growth-ready operating system.',
       )
+    } else if (isIndustriesRoute) {
+      pageTitle = 'Industries | Synergy Project Management'
+      pageDescription = clampMetaDescription(
+        'Explore Synergy industries across distribution, accommodation, digital systems, marketing, design, retail, operations, and construction.',
+      )
     } else if (isTermsRoute) {
       pageTitle = 'Terms of Use | Synergy Project Management'
       pageDescription = clampMetaDescription(
@@ -1210,6 +1352,7 @@ function App() {
   }, [
     activeServiceCard,
     isAboutRoute,
+    isIndustriesRoute,
     isCookieRoute,
     isCareersRoute,
     isContactRoute,
@@ -1230,6 +1373,12 @@ function App() {
   if (isServicesRoute && !activeServiceCard && !hasLoadedContent) {
     return <main className="services-page-shell" />
   }
+
+  // Projects page intentionally retired; route now resolves to not found.
+  if (isProjectsRoute) {
+    return <NotFoundPage onGoHome={() => navigateWithTransition('/', { replace: true })} />
+  }
+
   const sharedFooterSection = (
     <section ref={footerSceneRef} className="footer-scene" style={footerVars}>
       <div className="footer-sticky">
@@ -1273,8 +1422,8 @@ function App() {
               <p>Links</p>
               <a href="/">Home</a>
               <a href="/about-us">About</a>
-              <a href="/projects">Projects</a>
               <a href="/services/project-management">Services</a>
+              <a href="/industries">Industries</a>
               <a href="/contact-us">Contact</a>
             </div>
             <div className="footer-reference-col">
@@ -1319,7 +1468,7 @@ function App() {
               <div className="nav-bubble">
                 <a className="brand" href="/">
                   <img
-                    src="/syngergy-logo.png"
+                    src="/SYNERGY logo.png"
                     alt={siteContent.branding.company_name}
                     className="brand-wordmark-image about-brand-desktop"
                   />
@@ -1332,7 +1481,7 @@ function App() {
                 <nav className="menu">
                   <a href="/" className={navClass('#home')}>Home</a>
                   <a href="/services/project-management" className={serviceNavClass()}>Services</a>
-                  <a href="/projects" className={projectNavClass()}>Projects</a>
+                  <a href="/industries" className={industriesNavClass()}>Industries</a>
                   <a href="/about-us" className={aboutNavClass()}>About us</a>
                   <a href="/careers" className={careersNavClass()}>Careers</a>
                   <a href="/contact-us" className={contactNavClass()}>Contact us</a>
@@ -1386,8 +1535,8 @@ function App() {
                 >
                   Services
                 </a>
-                <a href="/projects" className={projectNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-                  Projects
+                <a href="/industries" className={industriesNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
+                  Industries
                 </a>
                 <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
                   About us
@@ -1462,8 +1611,9 @@ function App() {
 
   if (isAboutRoute) {
     return (
-      <main className="about-page-shell">
-        <section className="about-page-hero">
+      <>
+        <main className="about-page-shell">
+          <section className="about-page-hero">
           <div className="about-page-hero-visual-frame" aria-hidden="true">
             <div className="about-page-hero-media" style={aboutHeroMediaStyle} />
           </div>
@@ -1484,7 +1634,7 @@ function App() {
               <nav className="menu">
                 <a href="/" className={navClass('#home')}>Home</a>
                 <a href="/services/project-management" className={serviceNavClass()}>Services</a>
-                <a href="/projects" className={projectNavClass()}>Projects</a>
+                <a href="/industries" className={industriesNavClass()}>Industries</a>
                 <a href="/about-us" className={aboutNavClass()}>About us</a>
                 <a href="/careers" className={careersNavClass()}>Careers</a>
                 <a href="/contact-us" className={contactNavClass()}>Contact us</a>
@@ -1538,8 +1688,8 @@ function App() {
               >
                 Services
               </a>
-              <a href="/projects" className={projectNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-                Projects
+              <a href="/industries" className={industriesNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
+                Industries
               </a>
               <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
                 About us
@@ -1572,84 +1722,58 @@ function App() {
             </p>
           </div>
         </section>
-        <section className="about-services-section" aria-label="About page services">
-          <header className="about-services-header">
-            <h2>{siteContent.branding.services_title}</h2>
-            <div className="about-services-nav-arrows" aria-label="About services navigation">
+        <section className="home-services-section about-home-services-section" aria-label="Services showcase">
+          <div className="home-services-header">
+            <p>SERVICES</p>
+            <div className="home-services-heading-row">
+              <h2>Built for Real Business Outcomes</h2>
               <button
                 type="button"
-                className="about-services-nav-arrow"
-                onClick={() => setAboutServicesIndex((index) => Math.max(0, index - 1))}
-                disabled={aboutServicesIndex <= 0}
-                aria-label="Previous services slide"
+                className="home-services-view-all primary"
+                onClick={() => navigateWithTransition(homepageServicesHref)}
               >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M15 6l-6 6 6 6" />
-                </svg>
+                View all services
+                <span aria-hidden="true">
+                  <UpRightArrowIcon />
+                </span>
               </button>
-              <button
-                type="button"
-                className="about-services-nav-arrow"
-                onClick={() => setAboutServicesIndex((index) => Math.min(aboutMaxSlideIndex, index + 1))}
-                disabled={aboutServicesIndex >= aboutMaxSlideIndex}
-                aria-label="Next services slide"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M9 6l6 6-6 6" />
-                </svg>
-              </button>
-            </div>
-          </header>
-          <div className="about-services-cards-viewport">
-            <div
-              className="about-services-cards-track"
-              style={
-                {
-                  '--about-slide-offset': aboutServicesIndex,
-                  '--about-visible-cards': aboutVisibleCards,
-                } as CSSProperties
-              }
-            >
-              {aboutServiceCards.map((card) => {
-                const resolvedImage = typeof card.image_url === 'string' && card.image_url.trim().length > 0
-                  ? card.image_url.trim()
-                  : fallbackServiceCardImage
-                return (
-                  <article className="about-service-card" key={card.id}>
-                    <div
-                      className="about-service-card-media"
-                      style={
-                        resolvedImage
-                          ? ({
-                              backgroundImage: `linear-gradient(180deg, rgba(7, 16, 27, 0.08), rgba(7, 16, 27, 0.8)), url("${resolvedImage}")`,
-                              backgroundSize: 'auto, cover',
-                              backgroundPosition: 'center, center',
-                              backgroundRepeat: 'no-repeat, no-repeat',
-                            } as CSSProperties)
-                          : undefined
-                      }
-                      aria-hidden="true"
-                    />
-                    <div className="about-service-card-content">
-                      <h3>{card.title}</h3>
-                      <p>{card.description}</p>
-                    </div>
-                  </article>
-                )
-              })}
             </div>
           </div>
-          <div className="services-showcase-dots" role="tablist" aria-label="About services navigation">
-            {Array.from({ length: aboutMaxSlideIndex + 1 }).map((_, index) => (
-              <button
-                key={`about-service-dot-${index}`}
-                type="button"
-                className={`services-showcase-dot ${aboutServicesIndex === index ? 'active' : ''}`}
-                onClick={() => setAboutServicesIndex(index)}
-                aria-label={`Show services slide ${index + 1}`}
-                aria-selected={aboutServicesIndex === index}
-              />
-            ))}
+          <div className="home-services-grid">
+            {homepageFeaturedServices.map((service) => {
+              const resolvedImage = typeof service.image_url === 'string' && service.image_url.trim().length > 0
+                ? service.image_url.trim()
+                : fallbackServiceCardImage
+              return (
+                <article key={`home-service-${service.id}`} className="home-services-item">
+                  <a
+                    href={service.href}
+                    className="home-services-card"
+                    onClick={(event) => {
+                      event.preventDefault()
+                      navigateWithTransition(service.href)
+                    }}
+                    style={
+                      resolvedImage
+                        ? ({
+                            backgroundImage: `url("${resolvedImage}")`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                          } as CSSProperties)
+                        : undefined
+                    }
+                  >
+                    <span className="home-services-card-arrow" aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <path d="M8 16L16 8M10 8h6v6" />
+                      </svg>
+                    </span>
+                    <h3>{service.title}</h3>
+                  </a>
+                  <p>{service.description}</p>
+                </article>
+              )
+            })}
           </div>
         </section>
         <section className="about-team-section" aria-label="Our team">
@@ -1726,8 +1850,179 @@ function App() {
               />
             ))}
           </div>
-        </section>
-      </main>
+          </section>
+        </main>
+        {sharedFooterSection}
+      </>
+    )
+  }
+
+  if (isIndustriesRoute) {
+    return (
+      <>
+        <main className="industries-page-shell" ref={industriesPageRef}>
+          <section className="industries-hero">
+            <header className="top-nav about-page-header">
+              <div className="nav-bubble">
+                <a className="brand" href="/">
+                  <img
+                    src="/SYNERGY logo.png"
+                    alt={siteContent.branding.company_name}
+                    className="brand-wordmark-image about-brand-desktop"
+                  />
+                  <img
+                    src="/SYNERGY logo.png"
+                    alt={siteContent.branding.company_name}
+                    className="brand-wordmark-image about-brand-mobile"
+                  />
+                </a>
+                <nav className="menu">
+                  <a href="/" className={navClass('#home')}>Home</a>
+                  <a href="/services/project-management" className={serviceNavClass()}>Services</a>
+                  <a href="/industries" className={industriesNavClass()}>Industries</a>
+                  <a href="/about-us" className={aboutNavClass()}>About us</a>
+                  <a href="/careers" className={careersNavClass()}>Careers</a>
+                  <a href="/contact-us" className={contactNavClass()}>Contact us</a>
+                </nav>
+                <button
+                  className="menu-toggle"
+                  onClick={() => setIsMobileMenuOpen((open) => !open)}
+                  aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+                  aria-expanded={isMobileMenuOpen}
+                  aria-controls="mobile-nav-drawer"
+                >
+                  {isMobileMenuOpen ? 'Close' : 'Menu'}
+                </button>
+              </div>
+              <button className="call-btn" onClick={navigateToContact}>
+                Get in touch
+                <span className="call-btn-icon" aria-hidden="true">
+                  <UpRightArrowIcon />
+                </span>
+              </button>
+            </header>
+            <div
+              className={`mobile-menu-overlay ${isMobileMenuOpen ? 'open' : ''}`}
+              onClick={() => setIsMobileMenuOpen(false)}
+              aria-hidden={!isMobileMenuOpen}
+            />
+            <aside
+              id="mobile-nav-drawer"
+              className={`mobile-menu-drawer ${isMobileMenuOpen ? 'open' : ''}`}
+              aria-hidden={!isMobileMenuOpen}
+            >
+              <div className="mobile-menu-header">
+                <p className="mobile-menu-title">Menu</p>
+                <button
+                  type="button"
+                  className="mobile-menu-close"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  aria-label="Close menu"
+                >
+                  ×
+                </button>
+              </div>
+              <nav className="mobile-menu-links">
+                <a href="/" className={navClass('#home')} onClick={() => setIsMobileMenuOpen(false)}>
+                  Home
+                </a>
+                <a
+                  href="/services/project-management"
+                  className={serviceNavClass()}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Services
+                </a>
+                <a href="/industries" className={industriesNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
+                  Industries
+                </a>
+                <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
+                  About us
+                </a>
+                <a href="/careers" className={careersNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
+                  Careers
+                </a>
+                <a href="/contact-us" className={contactNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
+                  Contact us
+                </a>
+              </nav>
+              {mobileConnectSection}
+              <button
+                className="mobile-menu-call"
+                onClick={() => {
+                  navigateToContact()
+                }}
+              >
+                Get in touch
+              </button>
+            </aside>
+            <div className="industries-hero-content">
+              <article className="industries-hero-card">
+                <p className="industries-hero-card-kicker">Built Across Industries</p>
+                <p>
+                  We operate, build, and scale businesses across multiple sectors with systems that drive performance
+                  and long-term value.
+                </p>
+                <a className="industries-hero-card-cta" href="/contact-us">
+                  Get Started
+                  <span aria-hidden="true">
+                    <UpRightArrowIcon />
+                  </span>
+                </a>
+              </article>
+              <article className="industries-hero-headline">
+                <h1>
+                  <span>Operating At Scale</span>
+                  <span>Delivering Impact</span>
+                </h1>
+                <p>
+                  We build and operate businesses across multiple industries with focus, discipline, and a long-term
+                  vision for growth.
+                </p>
+              </article>
+            </div>
+            <div className="industries-hero-image" style={{ backgroundImage: `url("${industriesHeroImage}")` }}>
+              <div className="industries-hero-image-mark">
+                <img src="/SYNERGY logo.png" alt={siteContent.branding.company_name} />
+              </div>
+            </div>
+          </section>
+
+          <section className="industries-about" ref={industriesAboutRef}>
+            <div className="industries-about-kicker">// ABOUT US //</div>
+            <div className="industries-about-main">
+              <h2>
+                We are a diversified operations company committed to building and managing businesses across multiple
+                industries.
+              </h2>
+              <p>
+                With over 14 years of experience, we bring strategy, systems, and execution together to create
+                scalable, sustainable, and high-performing operations.
+              </p>
+              <div className="industries-about-stats">
+                <div>
+                  <strong>14 YRS</strong>
+                  <span>Of cross-industry experience</span>
+                </div>
+                <div>
+                  <strong>50+</strong>
+                  <span>Businesses built and managed</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="industries-list" aria-label="Industries" ref={industriesListRef}>
+            {industriesSectors.map((sector) => (
+              <article key={sector.title} className="industries-list-row">
+                <h3>{sector.title}</h3>
+                <p>{sector.description}</p>
+              </article>
+            ))}
+          </section>
+        </main>
+        {sharedFooterSection}
+      </>
     )
   }
 
@@ -1808,7 +2103,7 @@ function App() {
               <nav className="menu">
                 <a href="/" className={navClass('#home')}>Home</a>
                 <a href="/services/project-management" className={serviceNavClass()}>Services</a>
-                <a href="/projects" className={projectNavClass()}>Projects</a>
+                <a href="/industries" className={industriesNavClass()}>Industries</a>
                 <a href="/about-us" className={aboutNavClass()}>About us</a>
                 <a href="/careers" className={careersNavClass()}>Careers</a>
                 <a href="/contact-us" className={contactNavClass()}>Contact us</a>
@@ -1862,8 +2157,8 @@ function App() {
               >
                 Services
               </a>
-              <a href="/projects" className={projectNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-                Projects
+              <a href="/industries" className={industriesNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
+                Industries
               </a>
               <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
                 About us
@@ -1948,7 +2243,7 @@ function App() {
             <nav className="menu">
               <a href="/" className={navClass('#home')}>Home</a>
               <a href="/services/project-management" className={serviceNavClass()}>Services</a>
-              <a href="/projects" className={projectNavClass()}>Projects</a>
+              <a href="/industries" className={industriesNavClass()}>Industries</a>
               <a href="/about-us" className={aboutNavClass()}>About us</a>
               <a href="/careers" className={careersNavClass()}>Careers</a>
               <a href="/contact-us" className={contactNavClass()}>Contact us</a>
@@ -2001,9 +2296,6 @@ function App() {
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Services
-            </a>
-            <a href="/projects" className={projectNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-              Projects
             </a>
             <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
               About us
@@ -2465,7 +2757,7 @@ function App() {
             <nav className="menu">
               <a href="/" className={navClass('#home')}>Home</a>
               <a href="/services/project-management" className={serviceNavClass()}>Services</a>
-              <a href="/projects" className={projectNavClass()}>Projects</a>
+              <a href="/industries" className={industriesNavClass()}>Industries</a>
               <a href="/about-us" className={aboutNavClass()}>About us</a>
               <a href="/careers" className={careersNavClass()}>Careers</a>
               <a href="/contact-us" className={contactNavClass()}>Contact us</a>
@@ -2504,7 +2796,6 @@ function App() {
             <nav className="menu">
               <a href="/" className={navClass('#home')}>Home</a>
               <a href="/services/project-management" className={serviceNavClass()}>Services</a>
-              <a href="/projects" className={projectNavClass()}>Projects</a>
               <a href="/about-us" className={aboutNavClass()}>About us</a>
               <a href="/careers" className={careersNavClass()}>Careers</a>
               <a href="/contact-us" className={contactNavClass()}>Contact us</a>
@@ -2551,7 +2842,7 @@ function App() {
             <nav className="mobile-menu-links">
               <a href="/" className={navClass('#home')} onClick={() => setIsMobileMenuOpen(false)}>Home</a>
               <a href="/services/project-management" className={serviceNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Services</a>
-              <a href="/projects" className={projectNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Projects</a>
+              <a href="/industries" className={industriesNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Industries</a>
               <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>About us</a>
               <a href="/careers" className={careersNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Careers</a>
               <a href="/contact-us" className={contactNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Contact us</a>
@@ -2818,7 +3109,7 @@ function App() {
               <nav className="menu">
                 <a href="/" className={navClass('#home')}>Home</a>
                 <a href="/services/project-management" className={serviceNavClass()}>Services</a>
-                <a href="/projects" className={projectNavClass()}>Projects</a>
+                <a href="/industries" className={industriesNavClass()}>Industries</a>
                 <a href="/about-us" className={aboutNavClass()}>About us</a>
                 <a href="/careers" className={careersNavClass()}>Careers</a>
                 <a href="/contact-us" className={contactNavClass()}>Contact us</a>
@@ -2872,8 +3163,8 @@ function App() {
               >
                 Services
               </a>
-              <a href="/projects" className={projectNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-                Projects
+              <a href="/industries" className={industriesNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
+                Industries
               </a>
               <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
                 About us
@@ -3035,7 +3326,7 @@ function App() {
             <nav className="menu">
               <a href="/" className={navClass('#home')}>Home</a>
               <a href="/services/project-management" className={serviceNavClass()}>Services</a>
-              <a href="/projects" className={projectNavClass()}>Projects</a>
+              <a href="/industries" className={industriesNavClass()}>Industries</a>
               <a href="/about-us" className={aboutNavClass()}>About us</a>
               <a href="/careers" className={careersNavClass()}>Careers</a>
               <a href="/contact-us" className={contactNavClass()}>Contact us</a>
@@ -3091,9 +3382,6 @@ function App() {
           >
             Services
           </a>
-          <a href="/projects" className={projectNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-            Projects
-          </a>
           <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
             About us
           </a>
@@ -3145,7 +3433,7 @@ function App() {
                 <nav className="menu">
                   <a href="/" className={navClass('#home')}>Home</a>
                   <a href="/services/project-management" className={serviceNavClass()}>Services</a>
-                  <a href="/projects" className={projectNavClass()}>Projects</a>
+                  <a href="/industries" className={industriesNavClass()}>Industries</a>
                   <a href="/about-us" className={aboutNavClass()}>About us</a>
                   <a href="/careers" className={careersNavClass()}>Careers</a>
                   <a href="/contact-us" className={contactNavClass()}>Contact us</a>
@@ -3195,9 +3483,9 @@ function App() {
               <p className="eyebrow sticky-eyebrow">Synergy Project Management</p>
               <h2 className="sticky-title">14+ years of experience</h2>
               <p className="sticky-text">
-                We are a dynamic and fast-growing business, with experience in managing large
-                construction projects such as Hotel Apartments, Luxury Villas in the UAE and
-                Major Hospital Projects.
+                We are a dynamic and fast-growing business, with experience in building and managing operations
+                across industries including distribution, accommodation, systems, marketing, design, retail, and
+                construction.
               </p>
             </div>
           </div>
@@ -3263,23 +3551,23 @@ function App() {
           <section className="fourth-section">
             <article className="value-card value-card-before">
               <p className="card-label">Before</p>
-              <h3>Guessing what grows revenue.</h3>
+              <h3>Working Without Clear Structure</h3>
               <ul>
-                <li>Hiring more reps to fix conversion problems.</li>
-                <li>Pipeline that looks full but never closes.</li>
-                <li>Pricing based on what competitors charge.</li>
-                <li>Every quarter starts from zero.</li>
+                <li>Expanding into industries without clear systems.</li>
+                <li>Operations that run but lack visibility and control.</li>
+                <li>Decisions based on assumptions, not real data.</li>
+                <li>Growth that resets instead of compounding.</li>
               </ul>
             </article>
 
             <article className="value-card value-card-after">
               <p className="card-label">After</p>
-              <h3>Knowing exactly what moves the number.</h3>
+              <h3>Operating With Clear Structure In Place</h3>
               <ul>
-                <li>Every dollar of spend tied to revenue.</li>
-                <li>Pipeline that converts predictably.</li>
-                <li>Pricing built on what customers value.</li>
-                <li>Compounding growth, quarter over quarter.</li>
+                <li>Every operation built on clear, scalable systems.</li>
+                <li>Full visibility across performance and execution.</li>
+                <li>Decisions driven by real-time data and insights.</li>
+                <li>Compounding growth, industry by industry.</li>
               </ul>
             </article>
           </section>
@@ -3426,7 +3714,7 @@ function App() {
             <button
               className="insights-view-all"
               onClick={() => {
-                navigateWithTransition('/projects')
+                navigateWithTransition('/about-us')
               }}
             >
               Lets Partner on a Project
