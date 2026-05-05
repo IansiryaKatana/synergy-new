@@ -197,14 +197,6 @@ function formatProjectTitle(title: string) {
   return firstLineNode
 }
 
-function getStatusBadgeClass(statusText: string) {
-  const clean = statusText.replace(/^Status:\s*/i, '').toLowerCase()
-  if (clean.includes('completed')) return 'status-completed'
-  if (clean.includes('under construction')) return 'status-under-construction'
-  if (clean.includes('ongoing')) return 'status-ongoing'
-  return 'status-default'
-}
-
 function resolveServiceHref(service: ServiceItem) {
   const id = service.id.toLowerCase()
   const title = service.title.toLowerCase()
@@ -337,7 +329,6 @@ function App() {
   const heroSceneRef = useRef<HTMLElement | null>(null)
   const thirdSceneRef = useRef<HTMLElement | null>(null)
   const sixthSceneRef = useRef<HTMLElement | null>(null)
-  const insightsSceneRef = useRef<HTMLElement | null>(null)
   const footerSceneRef = useRef<HTMLElement | null>(null)
   const industriesPageRef = useRef<HTMLElement | null>(null)
   const industriesAboutRef = useRef<HTMLElement | null>(null)
@@ -441,18 +432,6 @@ function App() {
   const aboutTeamActiveVisualDot = aboutTeamMaxSlideIndex === 0
     ? 0
     : Math.round((aboutTeamIndex / aboutTeamMaxSlideIndex) * (aboutTeamVisualDotCount - 1))
-  const featuredInsights = useMemo(() => {
-    const insightsWithImages = siteContent.insights.filter(
-      (insight) => typeof insight.image_url === 'string' && insight.image_url.trim().length > 0,
-    )
-    if (insightsWithImages.length >= 3) return insightsWithImages.slice(0, 3)
-    return siteContent.insights.slice(0, 3)
-  }, [siteContent.insights])
-  const maxInsightsCards = isMobileViewport ? 1 : viewportWidth <= 1100 ? 2 : 3
-  const visibleInsights = useMemo(
-    () => featuredInsights.slice(0, maxInsightsCards),
-    [featuredInsights, maxInsightsCards],
-  )
   const projectHeroItems = useMemo(
     () =>
       siteContent.insights.length > 0
@@ -549,12 +528,6 @@ function App() {
     return () => document.removeEventListener('click', onLinkClick)
   }, [navigateWithTransition])
 
-  useEffect(() => {
-    setInsightsIndex((previous) => {
-      if (visibleInsights.length === 0) return 0
-      return Math.min(previous, visibleInsights.length - 1)
-    })
-  }, [visibleInsights.length])
   useEffect(() => {
     setInsightsIndex((previous) => {
       if (projectHeroItems.length === 0) return 0
@@ -3680,83 +3653,6 @@ function App() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      <section ref={insightsSceneRef} className="insights-scene">
-        <div className="insights-sticky">
-          <div className="insights-inner">
-          <aside className="insights-lead">
-            <div className="insights-title-row">
-              <h2>{siteContent.branding.insights_title}</h2>
-              <div className="section-nav-arrows" aria-label="Projects navigation">
-                <button
-                  type="button"
-                  className="section-nav-arrow"
-                  onClick={() => setInsightsIndex((index) => Math.max(0, index - 1))}
-                  disabled={insightsIndex <= 0}
-                  aria-label="Previous project card"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M15 6l-6 6 6 6" />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  className="section-nav-arrow"
-                  onClick={() => setInsightsIndex((index) => Math.min(visibleInsights.length - 1, index + 1))}
-                  disabled={insightsIndex >= visibleInsights.length - 1}
-                  aria-label="Next project card"
-                >
-                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M9 6l6 6-6 6" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-            <p>{siteContent.branding.insights_description}</p>
-            <button
-              className="insights-view-all"
-              onClick={() => {
-                navigateWithTransition('/about-us')
-              }}
-            >
-              Lets Partner on a Project
-              <span className="cta-arrow-icon" aria-hidden="true">
-                <UpRightArrowIcon />
-              </span>
-            </button>
-          </aside>
-
-          <div className="insights-cards-viewport">
-            <div
-              className="insights-cards-track"
-              style={isMobileViewport ? { transform: `translateX(-${insightsIndex * 100}%)` } : undefined}
-            >
-            {visibleInsights.map((insight) => (
-            <article
-              className={`insight-card ${insight.alt_style ? 'insight-card-alt' : ''} ${
-                insight.image_url ? 'has-image' : ''
-              }`}
-              style={
-                insight.image_url
-                  ? ({ '--insight-image-url': `url("${insight.image_url}")` } as CSSProperties)
-                  : undefined
-              }
-              key={insight.id}
-            >
-              <p className={`insight-chip ${getStatusBadgeClass(insight.chip)}`}>
-                {insight.chip.replace(/^Status:\s*/i, '')}
-              </p>
-              <p className="insight-date insight-location-badge">
-                {insight.date_label.replace(/^Location:\s*/i, '')}
-              </p>
-              <h3>{formatProjectTitle(insight.title)}</h3>
-            </article>
-            ))}
-            </div>
-          </div>
-        </div>
         </div>
       </section>
 
