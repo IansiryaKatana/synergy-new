@@ -2569,6 +2569,12 @@ a {
   border: 1px solid rgba(17, 90, 166, 0.16);
 }
 
+.mobile-menu-social-icons a svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
 .mobile-menu-call {
   width: 100%;
   border: none;
@@ -4348,7 +4354,25 @@ h1 {
 }
 
 .footer-reference-socials a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.36rem;
   color: #0f1f35;
+  text-decoration: none;
+  font-size: 0.86rem;
+  line-height: 1;
+}
+
+.footer-reference-socials a svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.footer-social-label {
+  font-weight: 500;
+  color: rgba(15, 31, 53, 0.9);
 }
 
 .footer-reference-bottom {

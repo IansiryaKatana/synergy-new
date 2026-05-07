@@ -132,11 +132,42 @@ function clampMetaDescription(input: string, max = 160) {
 
 function SocialIcon({ name }: { name: string }) {
   const normalized = name.toLowerCase()
-  if (normalized.includes('instagram') || normalized === 'ig') return <span aria-hidden="true">IG</span>
-  if (normalized.includes('linkedin') || normalized === 'in') return <span aria-hidden="true">in</span>
-  if (normalized.includes('facebook') || normalized === 'f' || normalized === 'fb') return <span aria-hidden="true">f</span>
-  if (normalized.includes('x') || normalized.includes('twitter')) return <span aria-hidden="true">X</span>
-  return <span aria-hidden="true">o</span>
+  if (normalized.includes('instagram') || normalized === 'ig') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3.5" y="3.5" width="17" height="17" rx="4.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        <circle cx="12" cy="12" r="4.1" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        <circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" />
+      </svg>
+    )
+  }
+  if (normalized.includes('linkedin') || normalized === 'in') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="4" y="4" width="16" height="16" rx="2.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+        <path d="M8.4 10.1v5.7M8.4 8.5h.01M11.8 15.8v-3.2c0-1.5.8-2.5 2.2-2.5s2 .9 2 2.5v3.2" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+  if (normalized.includes('facebook') || normalized === 'f' || normalized === 'fb') {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M14.5 8.2h2V5h-2.4c-2.7 0-4.3 1.6-4.3 4.5v2H8v3.1h1.8V19h3.3v-4.4h2.5l.4-3.1h-2.9V9.9c0-1 .4-1.7 1.4-1.7z" fill="currentColor" />
+      </svg>
+    )
+  }
+  if (normalized.includes('x') || normalized.includes('twitter')) {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 5h2.8l3.9 5.2L17.2 5H20l-6 7.1L20.3 19h-2.8l-4.2-5.6L8.5 19H5.7l6.3-7.5z" fill="currentColor" />
+      </svg>
+    )
+  }
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="8.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  )
 }
 
 function AboutTeamCardImage({ member }: { member: TeamMember }) {
@@ -860,6 +891,16 @@ function App() {
         'We operate a scalable distribution network built for speed, consistency, and market reach. From sourcing to last-mile delivery, we manage the full lifecycle of product movement, ensuring brands reach the right retailers efficiently. Our systems-driven approach provides real-time visibility, performance tracking, and reliable supply across regions.',
     },
     {
+      title: 'Warehousing & Fulfilment',
+      description:
+        'We provide structured warehousing and fulfilment solutions designed for efficiency, accuracy, and scalable operations. From inventory management to order processing and distribution coordination, our systems-driven approach ensures reliable handling, streamlined workflows, and operational visibility across the supply chain.',
+    },
+    {
+      title: 'Transport & Freight',
+      description:
+        'We manage transport and freight operations with a focus on reliability, coordination, and timely delivery. From regional distribution to logistics planning and movement oversight, we ensure efficient transportation processes that support consistent operations across multiple sectors.',
+    },
+    {
       title: 'Student Accommodation',
       description:
         'We develop and manage modern student living experiences designed for comfort, security, and long-term value. From property operations to booking systems and tenant engagement, we handle the full ecosystem. Our focus is on delivering seamless occupancy, strong retention, and a lifestyle that meets evolving student expectations.',
@@ -1383,10 +1424,12 @@ function App() {
             <div className="footer-reference-col">
               <p>Address</p>
               <span>Onyx Tower 1, The Greens{'\n'}Dubai, United Arab Emirates</span>
+              <p>Connect with us</p>
               <div className="footer-reference-socials">
                 {socialMediaItems.map((item) => (
                   <a key={`footer-social-${item.id}`} href={item.href} target="_blank" rel="noreferrer" aria-label={item.label}>
                     <SocialIcon name={item.label} />
+                    <span className="footer-social-label">{item.label}</span>
                   </a>
                 ))}
               </div>
