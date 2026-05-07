@@ -178,6 +178,38 @@ function AboutTeamCardImage({ member }: { member: TeamMember }) {
   useEffect(() => {
     setLoaded(false)
     setFailed(false)
+    if (!avatarUrl) return
+
+    let cancelled = false
+    const probe = new Image()
+    const timeoutId = window.setTimeout(() => {
+      if (cancelled) return
+      setFailed(true)
+      setLoaded(false)
+    }, 8000)
+
+    probe.onload = () => {
+      if (cancelled) return
+      window.clearTimeout(timeoutId)
+      setLoaded(true)
+      setFailed(false)
+    }
+
+    probe.onerror = () => {
+      if (cancelled) return
+      window.clearTimeout(timeoutId)
+      setFailed(true)
+      setLoaded(false)
+    }
+
+    probe.src = avatarUrl
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeoutId)
+      probe.onload = null
+      probe.onerror = null
+    }
   }, [avatarUrl, member.id])
 
   if (!avatarUrl || failed) {
