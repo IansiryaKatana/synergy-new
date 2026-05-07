@@ -379,7 +379,12 @@ const orderBy = <T extends { sort_order: number }>(items: T[]) =>
 
 export const contentApi = {
   fallback,
-  async getSiteContent(): Promise<SiteContent> {
+  async getSiteContent(options?: { includeInactive?: boolean }): Promise<SiteContent> {
+    const includeInactive = Boolean(options?.includeInactive)
+    const visibility = <T extends { sort_order: number; is_active: boolean }>(items: T[]) => {
+      const sorted = orderBy(items)
+      return includeInactive ? sorted : sorted.filter((x) => x.is_active)
+    }
     try {
       const [branding, team, services, insights, media, jobs] = await Promise.all([
         supabaseRest.selectOne<BrandingContent>('branding_content'),
@@ -391,11 +396,11 @@ export const contentApi = {
       ])
       return {
         branding: branding ?? fallback.branding,
-        team: orderBy(team).filter((x) => x.is_active),
-        services: orderBy(services).filter((x) => x.is_active),
-        insights: orderBy(insights).filter((x) => x.is_active),
-        media: orderBy(media).filter((x) => x.is_active),
-        jobs: orderBy(jobs).filter((x) => x.is_active),
+        team: visibility(team),
+        services: visibility(services),
+        insights: visibility(insights),
+        media: visibility(media),
+        jobs: visibility(jobs),
       }
     } catch {
       return {

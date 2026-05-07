@@ -145,6 +145,7 @@ export function AdminDashboard(props: AdminProps) {
   const [mediaView, setMediaView] = useState<'table' | 'grid'>('table')
   const [currentPage, setCurrentPage] = useState(1)
   const [teamSearch, setTeamSearch] = useState('')
+  const [teamVisibilityFilter, setTeamVisibilityFilter] = useState<'active' | 'inactive' | 'all'>('active')
   const [scrollProgress, setScrollProgress] = useState(0)
   const [formValues, setFormValues] = useState<Record<string, unknown>>({})
   const [serviceEditorTab, setServiceEditorTab] = useState<'general' | 'details'>('general')
@@ -187,9 +188,14 @@ export function AdminDashboard(props: AdminProps) {
 
   const filteredRows = useMemo(() => {
     if (entity !== 'team_members') return rows
+    const visibilityFiltered = rows.filter((row: any) => {
+      if (teamVisibilityFilter === 'all') return true
+      if (teamVisibilityFilter === 'active') return Boolean(row.is_active)
+      return !Boolean(row.is_active)
+    })
     const query = teamSearch.trim().toLowerCase()
-    if (!query) return rows
-    return rows.filter((row: any) => {
+    if (!query) return visibilityFiltered
+    return visibilityFiltered.filter((row: any) => {
       const haystack = [
         String(row.name ?? ''),
         String(row.role ?? ''),
@@ -201,7 +207,7 @@ export function AdminDashboard(props: AdminProps) {
         .toLowerCase()
       return haystack.includes(query)
     })
-  }, [entity, rows, teamSearch])
+  }, [entity, rows, teamSearch, teamVisibilityFilter])
 
   const filteredMediaFiles = useMemo(() => {
     const query = mediaLibrarySearch.trim().toLowerCase()
@@ -231,7 +237,7 @@ export function AdminDashboard(props: AdminProps) {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [entity, mediaView, rows.length, teamSearch])
+  }, [entity, mediaView, rows.length, teamSearch, teamVisibilityFilter])
 
   useEffect(() => {
     const onScroll = () => {
@@ -832,6 +838,18 @@ export function AdminDashboard(props: AdminProps) {
                       placeholder="Search team member by name, role, email..."
                       aria-label="Search team members"
                     />
+                    <select
+                      className="admin-search-input admin-team-visibility-filter"
+                      value={teamVisibilityFilter}
+                      onChange={(event) =>
+                        setTeamVisibilityFilter(event.target.value as 'active' | 'inactive' | 'all')
+                      }
+                      aria-label="Filter team members by status"
+                    >
+                      <option value="active">Active only</option>
+                      <option value="inactive">Inactive only</option>
+                      <option value="all">All team members</option>
+                    </select>
                   </div>
                 ) : null}
                 {props.page === 'media' ? (

@@ -4635,6 +4635,8 @@ h1 {
 .admin-search-wrap {
   flex: 0 1 360px;
   min-width: 220px;
+  display: grid;
+  gap: 0.5rem;
 }
 
 .admin-search-input {
@@ -4651,6 +4653,10 @@ h1 {
   outline: none;
   border-color: rgba(17, 90, 166, 0.6);
   box-shadow: 0 0 0 3px rgba(17, 90, 166, 0.14);
+}
+
+.admin-team-visibility-filter {
+  cursor: pointer;
 }
 
 .admin-main {

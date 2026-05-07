@@ -643,7 +643,9 @@ function App() {
 
   const loadContent = async () => {
     try {
-      const next = await contentApi.getSiteContent()
+      const includeInactive =
+        typeof window !== 'undefined' && window.location.pathname.toLowerCase().startsWith('/backend')
+      const next = await contentApi.getSiteContent({ includeInactive })
       setSiteContent(next)
     } finally {
       setHasLoadedContent(true)
