@@ -1,4 +1,14 @@
-import { useEffect, useMemo, useRef, useState, type Dispatch, type MouseEvent, type SetStateAction } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ClipboardEvent,
+  type Dispatch,
+  type MouseEvent,
+  type SetStateAction,
+} from 'react'
 import {
   Briefcase,
   ChartNoAxesColumn,
@@ -47,6 +57,11 @@ type SidebarItem = {
 }
 
 type BrandingTab = 'identity' | 'hero' | 'sections' | 'footer' | 'media'
+type JobsCsvPreviewRow = {
+  rowNumber: number
+  payload: Record<string, unknown>
+  validationError: string
+}
 
 const PAGE_TO_ENTITY: Partial<Record<AdminPage, EntityType>> = {
   team: 'team_members',
@@ -105,6 +120,21 @@ const JOB_FIELD_OPTIONS: Record<string, string[]> = {
   workplace_type: ['On-site', 'Hybrid', 'Remote'],
 }
 
+const JOB_BULK_UPLOAD_FIELDS = [
+  'id',
+  'title',
+  'department',
+  'summary',
+  'job_description_html',
+  'notification_email',
+  'location_label',
+  'employment_type',
+  'workplace_type',
+  'apply_url',
+  'sort_order',
+  'is_active',
+] as const
+
 const RECORD_UPLOAD_FIELDS: Record<EntityType, string[]> = {
   team_members: ['avatar_url'],
   services: ['image_url'],
@@ -124,6 +154,7 @@ const ENTITY_EDITOR_LABELS: Record<EntityType, string> = {
 export function AdminDashboard(props: AdminProps) {
   const mainScrollRef = useRef<HTMLElement | null>(null)
   const mediaUploadInputRef = useRef<HTMLInputElement | null>(null)
+  const jobsBulkInputRef = useRef<HTMLInputElement | null>(null)
   const [entity, setEntity] = useState<EntityType>(PAGE_TO_ENTITY[props.page] ?? 'team_members')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
@@ -164,6 +195,10 @@ export function AdminDashboard(props: AdminProps) {
   const [smtpStatus, setSmtpStatus] = useState('')
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
+  const [isBulkUploadingJobs, setIsBulkUploadingJobs] = useState(false)
+  const [jobsCsvConfirmOpen, setJobsCsvConfirmOpen] = useState(false)
+  const [jobsCsvFileName, setJobsCsvFileName] = useState('')
+  const [jobsCsvPreviewRows, setJobsCsvPreviewRows] = useState<JobsCsvPreviewRow[]>([])
 
   const rows = useMemo(() => {
     if (entity === 'team_members') return props.team
@@ -547,6 +582,115 @@ export function AdminDashboard(props: AdminProps) {
     setSaving(false)
   }
 
+  const downloadJobsTemplate = () => {
+    const csv = buildJobsTemplateCsv(props.jobs)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'job-posts-template.csv'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    setStatus('Downloaded jobs CSV template.')
+  }
+
+  const handleJobsBulkUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null
+    event.currentTarget.value = ''
+    if (!file) return
+
+    try {
+      const rawCsv = await file.text()
+      const parseResult = parseJobsCsv(rawCsv)
+      if (parseResult.error) {
+        setStatus(parseResult.error)
+        return
+      }
+
+      const rows = parseResult.rows
+      if (rows.length === 0) {
+        setStatus('No rows found in CSV. Add at least one job row and retry.')
+        return
+      }
+
+      const previewRows = rows.map((row, index) => {
+        const payload = mapCsvRowToJobPayload(row, index)
+        const validationError = validatePayload('job_posts', payload)
+        return {
+          rowNumber: index + 2,
+          payload,
+          validationError,
+        }
+      })
+      const validationFailures = previewRows.filter((row) => row.validationError)
+      const validationSummary = validationFailures
+        .slice(0, 4)
+        .map((row) => `Row ${row.rowNumber}: ${row.validationError}`)
+        .join(' | ')
+
+      setJobsCsvPreviewRows(previewRows)
+      setJobsCsvFileName(file.name)
+      setJobsCsvConfirmOpen(true)
+      setStatus(
+        validationFailures.length > 0
+          ? `CSV parsed with ${validationFailures.length} validation issue(s). ${validationSummary}${validationFailures.length > 4 ? ' | ...' : ''}`
+          : `CSV parsed successfully. ${previewRows.length} row(s) ready to upload.`,
+      )
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : 'Unable to process CSV upload.')
+    }
+  }
+
+  const confirmJobsBulkUpload = async () => {
+    if (jobsCsvPreviewRows.length === 0) {
+      setStatus('No parsed CSV rows available. Please upload a CSV file again.')
+      return
+    }
+    const invalidRows = jobsCsvPreviewRows.filter((row) => row.validationError)
+    if (invalidRows.length > 0) {
+      const summary = invalidRows
+        .slice(0, 4)
+        .map((row) => `Row ${row.rowNumber}: ${row.validationError}`)
+        .join(' | ')
+      setStatus(`Fix CSV errors before upload. ${summary}${invalidRows.length > 4 ? ' | ...' : ''}`)
+      return
+    }
+
+    setIsBulkUploadingJobs(true)
+    setSaving(true)
+    try {
+      const failures: string[] = []
+      let successCount = 0
+      for (const previewRow of jobsCsvPreviewRows) {
+        try {
+          await contentApi.upsertRow('job_posts', previewRow.payload)
+          successCount += 1
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Unable to upsert row.'
+          failures.push(`Row ${previewRow.rowNumber}: ${message}`)
+        }
+      }
+
+      if (successCount > 0) await props.onRefresh()
+      if (failures.length === 0) {
+        setStatus(`Uploaded ${successCount} job row(s) from CSV.`)
+        setJobsCsvConfirmOpen(false)
+        setJobsCsvPreviewRows([])
+        setJobsCsvFileName('')
+        return
+      }
+      const errorSummary = failures.slice(0, 4).join(' | ')
+      setStatus(
+        `Uploaded ${successCount} row(s), ${failures.length} failed. ${errorSummary}${failures.length > 4 ? ' | ...' : ''}`,
+      )
+    } finally {
+      setSaving(false)
+      setIsBulkUploadingJobs(false)
+    }
+  }
+
   const uploadAndRegisterMedia = async (file: File) => {
     const uploaded = await contentApi.uploadMedia(file, 'admin')
     await contentApi.upsertRow('media_items', {
@@ -827,6 +971,27 @@ export function AdminDashboard(props: AdminProps) {
                   <button className="admin-btn" disabled={saving || selectedIds.length === 0} onClick={() => bulkSetActive(true)}>Bulk activate</button>
                   <button className="admin-btn" disabled={saving || selectedIds.length === 0} onClick={() => bulkSetActive(false)}>Bulk deactivate</button>
                   <button className="admin-btn admin-btn-danger" disabled={saving || selectedIds.length === 0} onClick={bulkDelete}>Bulk delete</button>
+                  {props.page === 'careers' ? (
+                    <>
+                      <button className="admin-btn" disabled={saving} onClick={downloadJobsTemplate}>
+                        Download CSV template
+                      </button>
+                      <button
+                        className="admin-btn"
+                        disabled={saving || isBulkUploadingJobs}
+                        onClick={() => jobsBulkInputRef.current?.click()}
+                      >
+                        {isBulkUploadingJobs ? 'Uploading CSV...' : 'Bulk upload CSV'}
+                      </button>
+                      <input
+                        ref={jobsBulkInputRef}
+                        type="file"
+                        accept=".csv,text/csv"
+                        className="admin-upload-input-hidden"
+                        onChange={handleJobsBulkUpload}
+                      />
+                    </>
+                  ) : null}
                 </div>
                 {props.page === 'team' ? (
                   <div className="admin-search-wrap">
@@ -1170,6 +1335,52 @@ export function AdminDashboard(props: AdminProps) {
             }}
           >
             Edit record
+          </button>
+        </div>
+      </section>
+
+      <div
+        className={`admin-editor-overlay ${jobsCsvConfirmOpen ? 'open' : ''}`}
+        onClick={() => setJobsCsvConfirmOpen(false)}
+      />
+      <section className={`admin-record-sheet ${jobsCsvConfirmOpen ? 'open' : ''}`}>
+        <div className="admin-editor-head">
+          <h3>Confirm Jobs CSV Upload</h3>
+          <button onClick={() => setJobsCsvConfirmOpen(false)}>Close</button>
+        </div>
+        <div className="admin-editor-body">
+          <p className="admin-status">
+            File: <strong>{jobsCsvFileName || 'N/A'}</strong> | Rows: <strong>{jobsCsvPreviewRows.length}</strong> | Issues:{' '}
+            <strong>{jobsCsvPreviewRows.filter((row) => row.validationError).length}</strong>
+          </p>
+          <dl className="admin-record-details">
+            {jobsCsvPreviewRows.slice(0, 40).map((row) => (
+              <div key={`jobs-csv-row-${row.rowNumber}`}>
+                <dt>
+                  Row {row.rowNumber}: {String(row.payload.title ?? 'Untitled role')}
+                </dt>
+                <dd>
+                  {row.validationError
+                    ? `Error: ${row.validationError}`
+                    : `Department: ${String(row.payload.department ?? '')} | Location: ${String(row.payload.location_label ?? '')} | Type: ${String(row.payload.employment_type ?? '')}`}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          {jobsCsvPreviewRows.length > 40 ? (
+            <p className="admin-status">Showing first 40 rows in preview. Full file will be uploaded on confirm.</p>
+          ) : null}
+        </div>
+        <div className="admin-editor-foot">
+          <button className="admin-btn" onClick={() => setJobsCsvConfirmOpen(false)}>
+            Cancel
+          </button>
+          <button
+            className="admin-btn admin-btn-primary"
+            disabled={saving || isBulkUploadingJobs || jobsCsvPreviewRows.some((row) => row.validationError)}
+            onClick={confirmJobsBulkUpload}
+          >
+            {isBulkUploadingJobs ? 'Uploading...' : 'Confirm upload'}
           </button>
         </div>
       </section>
@@ -1585,6 +1796,21 @@ function RichTextEditor({ value, onChange }: { value: string; onChange: (value: 
     onChange(editor.innerHTML)
   }
 
+  const handlePaste = (event: ClipboardEvent<HTMLDivElement>) => {
+    const editor = editorRef.current
+    if (!editor) return
+    const html = event.clipboardData.getData('text/html')
+    const text = event.clipboardData.getData('text/plain')
+    const candidate = html || text
+    const looksLikeHtml = /<([a-z][\w-]*)(\s[^>]*)?>[\s\S]*<\/\1>|<([a-z][\w-]*)(\s[^>]*)?\/?>/i.test(candidate)
+
+    if (!looksLikeHtml) return
+    event.preventDefault()
+    editor.focus()
+    document.execCommand('insertHTML', false, candidate)
+    onChange(editor.innerHTML)
+  }
+
   return (
     <div className="admin-rich-editor">
       <div className="admin-rich-toolbar">
@@ -1613,6 +1839,7 @@ function RichTextEditor({ value, onChange }: { value: string; onChange: (value: 
         className="admin-rich-surface"
         contentEditable
         suppressContentEditableWarning
+        onPaste={handlePaste}
         onInput={(event) => onChange(event.currentTarget.innerHTML)}
         onBlur={(event) => onChange(event.currentTarget.innerHTML)}
       />
@@ -1669,4 +1896,173 @@ function formatFieldLabel(field: string) {
     .replace(/_url$/, ' URL')
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function buildJobsTemplateCsv(existingJobs: JobPost[]) {
+  const header = JOB_BULK_UPLOAD_FIELDS.join(',')
+  const jobs = existingJobs.length > 0 ? existingJobs : buildDefaultJobsTemplateRows()
+  const body = jobs
+    .map((job, index) =>
+      JOB_BULK_UPLOAD_FIELDS.map((field) => {
+        if (field === 'sort_order') return escapeCsvCell(String(Number(job.sort_order || index + 1)))
+        if (field === 'is_active') return escapeCsvCell(job.is_active ? 'true' : 'false')
+        return escapeCsvCell(String(job[field] ?? ''))
+      }).join(','),
+    )
+    .join('\n')
+  return `${header}\n${body}\n`
+}
+
+function buildDefaultJobsTemplateRows(): JobPost[] {
+  return [
+    {
+      id: '',
+      title: 'Finance Manager',
+      department: 'Finance',
+      summary: 'Lead budgeting, reporting, and financial planning for strategic projects.',
+      job_description_html: '',
+      notification_email: '',
+      location_label: 'Dubai, UAE',
+      employment_type: 'Full-time',
+      workplace_type: 'On-site',
+      apply_url: '',
+      sort_order: 1,
+      is_active: true,
+    },
+    {
+      id: '',
+      title: 'Compliance Officer',
+      department: 'Compliance',
+      summary: 'Drive regulatory readiness, policy alignment, and audit support across teams.',
+      job_description_html: '',
+      notification_email: '',
+      location_label: 'Abu Dhabi, UAE',
+      employment_type: 'Full-time',
+      workplace_type: 'Hybrid',
+      apply_url: '',
+      sort_order: 2,
+      is_active: true,
+    },
+    {
+      id: '',
+      title: 'HR Coordinator',
+      department: 'Human Resources',
+      summary: 'Support hiring, onboarding, and employee lifecycle operations.',
+      job_description_html: '',
+      notification_email: '',
+      location_label: 'Remote - UAE',
+      employment_type: 'Full-time',
+      workplace_type: 'Remote',
+      apply_url: '',
+      sort_order: 3,
+      is_active: true,
+    },
+  ]
+}
+
+function escapeCsvCell(input: string) {
+  const value = input ?? ''
+  if (!/[",\n\r]/.test(value)) return value
+  return `"${value.replace(/"/g, '""')}"`
+}
+
+function parseJobsCsv(input: string): { rows: Array<Record<string, string>>; error?: string } {
+  const rows = parseCsvRows(input)
+  if (rows.length < 2) {
+    return { rows: [], error: 'CSV must include a header and at least one data row.' }
+  }
+
+  const headers = rows[0].map((cell) => cell.trim())
+  const requiredHeaders = new Set(JOB_BULK_UPLOAD_FIELDS)
+  const missingHeaders = Array.from(requiredHeaders).filter((header) => !headers.includes(header))
+  if (missingHeaders.length > 0) {
+    return { rows: [], error: `Missing required CSV columns: ${missingHeaders.join(', ')}` }
+  }
+
+  const records: Array<Record<string, string>> = []
+  for (let rowIndex = 1; rowIndex < rows.length; rowIndex += 1) {
+    const cells = rows[rowIndex]
+    if (cells.length === 1 && !cells[0]?.trim()) continue
+    const record: Record<string, string> = {}
+    headers.forEach((header, columnIndex) => {
+      record[header] = cells[columnIndex] ?? ''
+    })
+    records.push(record)
+  }
+
+  return { rows: records }
+}
+
+function parseCsvRows(input: string) {
+  const rows: string[][] = []
+  let currentRow: string[] = []
+  let currentCell = ''
+  let inQuotes = false
+
+  for (let i = 0; i < input.length; i += 1) {
+    const char = input[i]
+    const next = input[i + 1]
+
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        currentCell += '"'
+        i += 1
+      } else {
+        inQuotes = !inQuotes
+      }
+      continue
+    }
+
+    if (!inQuotes && char === ',') {
+      currentRow.push(currentCell)
+      currentCell = ''
+      continue
+    }
+
+    if (!inQuotes && (char === '\n' || char === '\r')) {
+      if (char === '\r' && next === '\n') i += 1
+      currentRow.push(currentCell)
+      rows.push(currentRow)
+      currentRow = []
+      currentCell = ''
+      continue
+    }
+
+    currentCell += char
+  }
+
+  currentRow.push(currentCell)
+  rows.push(currentRow)
+  return rows
+}
+
+function mapCsvRowToJobPayload(row: Record<string, string>, index: number): Record<string, unknown> {
+  const payload: Record<string, unknown> = {
+    id: row.id.trim(),
+    title: row.title.trim(),
+    department: row.department.trim(),
+    summary: row.summary.trim(),
+    job_description_html: row.job_description_html ?? '',
+    notification_email: row.notification_email.trim(),
+    location_label: row.location_label.trim() || 'Dubai, UAE',
+    employment_type: row.employment_type.trim() || 'Full-time',
+    workplace_type: row.workplace_type.trim() || 'On-site',
+    apply_url: row.apply_url.trim(),
+    sort_order: Number.parseInt(row.sort_order, 10) || index + 1,
+    is_active: parseBooleanCell(row.is_active, true),
+  }
+
+  if (!String(payload.id).trim()) {
+    payload.id = buildRecordId('job_posts', payload)
+  }
+
+  return payload
+}
+
+function parseBooleanCell(value: string, fallback: boolean) {
+  const normalized = String(value ?? '').trim().toLowerCase()
+  if (!normalized) return fallback
+  if (['true', '1', 'yes', 'y'].includes(normalized)) return true
+  if (['false', '0', 'no', 'n'].includes(normalized)) return false
+  return fallback
 }

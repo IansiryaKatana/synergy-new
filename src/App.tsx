@@ -82,8 +82,15 @@ function isVideoMediaSource(url: string) {
 function sanitizeRichHtml(input?: string | null) {
   if (!input) return ''
   if (typeof window === 'undefined') return input
+  let normalizedInput = input
+  if (/[&]lt;|[&]gt;|[&]amp;/i.test(normalizedInput)) {
+    const decoder = document.createElement('textarea')
+    decoder.innerHTML = normalizedInput
+    const decoded = decoder.value
+    if (/<[a-z][\s\S]*>/i.test(decoded)) normalizedInput = decoded
+  }
   const parser = new DOMParser()
-  const doc = parser.parseFromString(input, 'text/html')
+  const doc = parser.parseFromString(normalizedInput, 'text/html')
   doc.querySelectorAll('script,iframe,object,embed').forEach((node) => node.remove())
   doc.querySelectorAll('*').forEach((el) => {
     for (const attr of Array.from(el.attributes)) {
@@ -128,6 +135,13 @@ function clampMetaDescription(input: string, max = 160) {
   if (!cleaned) return ''
   if (cleaned.length <= max) return cleaned
   return `${cleaned.slice(0, max - 1).trimEnd()}...`
+}
+
+function truncateText(input: string, max = 110) {
+  const cleaned = String(input ?? '').replace(/\s+/g, ' ').trim()
+  if (!cleaned) return ''
+  if (cleaned.length <= max) return cleaned
+  return `${cleaned.slice(0, max).trimEnd()}...`
 }
 
 function SocialIcon({ name }: { name: string }) {
@@ -370,6 +384,8 @@ function App() {
   const [jobApplicationStatus, setJobApplicationStatus] = useState('')
   const [showCareersReturnHeader, setShowCareersReturnHeader] = useState(false)
   const [aboutTeamIndex, setAboutTeamIndex] = useState(0)
+  const [teamVisibleCount, setTeamVisibleCount] = useState(8)
+  const [teamMobileIndex, setTeamMobileIndex] = useState(0)
   const [viewportWidth, setViewportWidth] = useState(
     typeof window !== 'undefined' ? window.innerWidth : 1280,
   )
@@ -420,6 +436,11 @@ function App() {
       jobNoteEditor.commands.setContent(nextHtml, { emitUpdate: false })
     }
   }, [jobNoteEditor, jobApplicantNote])
+
+  useEffect(() => {
+    setTeamVisibleCount(8)
+    setTeamMobileIndex(0)
+  }, [activeRoute, siteContent.team.length])
 
   const navigateWithTransition = useCallback(
     (target: string, options?: { replace?: boolean }) => {
@@ -844,6 +865,7 @@ function App() {
     activePathname.startsWith('/careers/') ||
     activePathname === '/career' ||
     activePathname.startsWith('/career/')
+  const isTeamRoute = activePathname === '/team' || activePathname.startsWith('/team/')
   const isContactRoute = activePathname === '/contact-us' || activePathname.startsWith('/contact-us/')
   const serviceNavClass = () => (isServicesRoute ? 'active' : '')
   const aboutNavClass = () => (isAboutRoute ? 'active' : '')
@@ -872,6 +894,26 @@ function App() {
     [selectedCareerId, siteContent.jobs],
   )
   const isCareerDetailRoute = isCareersRoute && selectedCareerId.length > 0
+  const teamMembers = siteContent.team
+  const teamCarouselDotCount = 6
+  const visibleTeamMembers = useMemo(
+    () => teamMembers.slice(0, Math.max(0, teamVisibleCount)),
+    [teamMembers, teamVisibleCount],
+  )
+  const teamDotTargets = useMemo(
+    () => {
+      const dotCount = Math.max(1, Math.min(teamCarouselDotCount, teamMembers.length))
+      return Array.from({ length: dotCount }, (_, index) => {
+        if (teamMembers.length <= 1) return 0
+        if (dotCount === 1) return 0
+        return Math.round((index / (dotCount - 1)) * (teamMembers.length - 1))
+      })
+    },
+    [teamMembers.length],
+  )
+  const teamActiveDotIndex = teamMembers.length <= 1
+    ? 0
+    : Math.round((teamMobileIndex / Math.max(1, teamMembers.length - 1)) * Math.max(0, teamDotTargets.length - 1))
   const homepageHeroMediaSrc = siteContent.branding.homepage_hero_video_url?.trim() ?? ''
   const homepageHeroIsVideo = isVideoMediaSource(homepageHeroMediaSrc)
   const homepageHeroMediaStyle = homepageHeroMediaSrc
@@ -935,6 +977,31 @@ function App() {
         'We manage transport and freight operations with a focus on reliability, coordination, and timely delivery. From regional distribution to logistics planning and movement oversight, we ensure efficient transportation processes that support consistent operations across multiple sectors.',
     },
     {
+      title: 'Residential Developments',
+      description:
+        'We oversee residential developments with a focus on quality, functionality, and long-term value. From planning and coordination to execution and delivery, we manage projects designed to create modern living environments aligned with evolving market demands.',
+    },
+    {
+      title: 'Business Parks',
+      description:
+        'We support the development and management of business parks designed to accommodate scalable commercial operations. Our approach focuses on infrastructure, operational efficiency, and creating environments that support long-term business growth and occupancy.',
+    },
+    {
+      title: 'Retail Centres',
+      description:
+        'We develop and manage retail environments that combine accessibility, functionality, and customer experience. From planning and operational coordination to tenant-focused execution, we create retail spaces built for long-term commercial performance.',
+    },
+    {
+      title: 'Construction Project Management',
+      description:
+        'We provide structured construction project management focused on coordination, accountability, and delivery. From procurement and scheduling to execution oversight and reporting, we ensure projects are managed efficiently and completed to specification.',
+    },
+    {
+      title: 'AI Systems & Reporting',
+      description:
+        'We design and implement AI-driven systems and reporting solutions that improve operational visibility and decision-making. From automation and analytics to real-time reporting infrastructure, our systems are built to streamline processes, enhance accuracy, and support scalable business operations.',
+    },
+    {
       title: 'Student Accommodation',
       description:
         'We develop and manage modern student living experiences designed for comfort, security, and long-term value. From property operations to booking systems and tenant engagement, we handle the full ecosystem. Our focus is on delivering seamless occupancy, strong retention, and a lifestyle that meets evolving student expectations.',
@@ -963,11 +1030,6 @@ function App() {
       title: 'Industry Development & Operations',
       description:
         'Beyond individual sectors, we actively build, manage, and scale businesses across multiple industries. Our role extends from strategy and setup to execution and optimization, allowing us to create structured, high-performing operations in each vertical we enter.',
-    },
-    {
-      title: 'Construction',
-      description:
-        'We oversee the planning and execution of construction projects with a focus on quality, efficiency, and long-term value. From initial concept through to delivery, we coordinate design, procurement, and build processes to ensure projects are completed on time and to specification. Our approach combines structured project management with trusted partnerships, enabling us to deliver spaces that meet both functional and investment objectives.',
     },
   ]
   const teamSectionStyle = siteContent.branding.homepage_team_background_url
@@ -1114,21 +1176,20 @@ function App() {
       }
       if (listRows && listRows.length > 0) {
         listRows.forEach((row) => {
-          gsap.fromTo(
-            row,
-            { y: 56, opacity: 0 },
-            {
-              y: 0,
-              opacity: 1,
-              duration: 0.78,
-              ease: 'power3.out',
-              scrollTrigger: {
-                trigger: row,
-                start: 'top 86%',
-                once: true,
-              },
-            },
-          )
+          const animateRow = () => {
+            gsap.fromTo(
+              row,
+              { y: 28, opacity: 0 },
+              { y: 0, opacity: 1, duration: 0.7, ease: 'power3.out', overwrite: 'auto' },
+            )
+          }
+
+          ScrollTrigger.create({
+            trigger: row,
+            start: 'top 86%',
+            onEnter: animateRow,
+            onEnterBack: animateRow,
+          })
         })
       }
     }, industriesPageRef)
@@ -1456,8 +1517,6 @@ function App() {
           </div>
           <div className="footer-reference-links-card">
             <div className="footer-reference-col">
-              <p>Address</p>
-              <span>Onyx Tower 1, The Greens{'\n'}Dubai, United Arab Emirates</span>
               <p>Connect with us</p>
               <div className="footer-reference-socials">
                 {socialMediaItems.map((item) => (
@@ -1533,6 +1592,7 @@ function App() {
                   <a href="/services/project-management" className={serviceNavClass()}>Services</a>
                   <a href="/industries" className={industriesNavClass()}>Industries</a>
                   <a href="/about-us" className={aboutNavClass()}>About us</a>
+                  <a href="/team" className={navClass('/team')}>Our Team</a>
                   <a href="/careers" className={careersNavClass()}>Careers</a>
                   <a href="/contact-us" className={contactNavClass()}>Contact us</a>
                 </nav>
@@ -1591,6 +1651,7 @@ function App() {
                 <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
                   About us
                 </a>
+                <a href="/team" className={navClass('/team')} onClick={() => setIsMobileMenuOpen(false)}>Our Team</a>
                 <a href="/careers" className={careersNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
                   Careers
                 </a>
@@ -1686,6 +1747,7 @@ function App() {
                 <a href="/services/project-management" className={serviceNavClass()}>Services</a>
                 <a href="/industries" className={industriesNavClass()}>Industries</a>
                 <a href="/about-us" className={aboutNavClass()}>About us</a>
+                <a href="/team" className={navClass('/team')}>Our Team</a>
                 <a href="/careers" className={careersNavClass()}>Careers</a>
                 <a href="/contact-us" className={contactNavClass()}>Contact us</a>
               </nav>
@@ -1743,6 +1805,9 @@ function App() {
               </a>
               <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
                 About us
+              </a>
+              <a href="/team" className={navClass('/team')} onClick={() => setIsMobileMenuOpen(false)}>
+                Our Team
               </a>
               <a href="/careers" className={careersNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
                 Careers
@@ -1931,6 +1996,7 @@ function App() {
                   <a href="/services/project-management" className={serviceNavClass()}>Services</a>
                   <a href="/industries" className={industriesNavClass()}>Industries</a>
                   <a href="/about-us" className={aboutNavClass()}>About us</a>
+                  <a href="/team" className={navClass('/team')}>Our Team</a>
                   <a href="/careers" className={careersNavClass()}>Careers</a>
                   <a href="/contact-us" className={contactNavClass()}>Contact us</a>
                 </nav>
@@ -1989,6 +2055,7 @@ function App() {
                 <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
                   About us
                 </a>
+                <a href="/team" className={navClass('/team')} onClick={() => setIsMobileMenuOpen(false)}>Our Team</a>
                 <a href="/careers" className={careersNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
                   Careers
                 </a>
@@ -2155,6 +2222,7 @@ function App() {
                 <a href="/services/project-management" className={serviceNavClass()}>Services</a>
                 <a href="/industries" className={industriesNavClass()}>Industries</a>
                 <a href="/about-us" className={aboutNavClass()}>About us</a>
+                <a href="/team" className={navClass('/team')}>Our Team</a>
                 <a href="/careers" className={careersNavClass()}>Careers</a>
                 <a href="/contact-us" className={contactNavClass()}>Contact us</a>
               </nav>
@@ -2212,6 +2280,9 @@ function App() {
               </a>
               <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
                 About us
+              </a>
+              <a href="/team" className={navClass('/team')} onClick={() => setIsMobileMenuOpen(false)}>
+                Our Team
               </a>
               <a href="/careers" className={careersNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
                 Careers
@@ -2295,6 +2366,7 @@ function App() {
               <a href="/services/project-management" className={serviceNavClass()}>Services</a>
               <a href="/industries" className={industriesNavClass()}>Industries</a>
               <a href="/about-us" className={aboutNavClass()}>About us</a>
+              <a href="/team" className={navClass('/team')}>Our Team</a>
               <a href="/careers" className={careersNavClass()}>Careers</a>
               <a href="/contact-us" className={contactNavClass()}>Contact us</a>
             </nav>
@@ -2350,6 +2422,7 @@ function App() {
             <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
               About us
             </a>
+            <a href="/team" className={navClass('/team')} onClick={() => setIsMobileMenuOpen(false)}>Our Team</a>
             <a href="/careers" className={careersNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
               Careers
             </a>
@@ -2809,6 +2882,7 @@ function App() {
               <a href="/services/project-management" className={serviceNavClass()}>Services</a>
               <a href="/industries" className={industriesNavClass()}>Industries</a>
               <a href="/about-us" className={aboutNavClass()}>About us</a>
+              <a href="/team" className={navClass('/team')}>Our Team</a>
               <a href="/careers" className={careersNavClass()}>Careers</a>
               <a href="/contact-us" className={contactNavClass()}>Contact us</a>
             </nav>
@@ -2848,6 +2922,7 @@ function App() {
               <a href="/services/project-management" className={serviceNavClass()}>Services</a>
               <a href="/industries" className={industriesNavClass()}>Industries</a>
               <a href="/about-us" className={aboutNavClass()}>About us</a>
+              <a href="/team" className={navClass('/team')}>Our Team</a>
               <a href="/careers" className={careersNavClass()}>Careers</a>
               <a href="/contact-us" className={contactNavClass()}>Contact us</a>
             </nav>
@@ -2895,6 +2970,7 @@ function App() {
               <a href="/services/project-management" className={serviceNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Services</a>
               <a href="/industries" className={industriesNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Industries</a>
               <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>About us</a>
+              <a href="/team" className={navClass('/team')} onClick={() => setIsMobileMenuOpen(false)}>Our Team</a>
               <a href="/careers" className={careersNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Careers</a>
               <a href="/contact-us" className={contactNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Contact us</a>
             </nav>
@@ -2903,7 +2979,8 @@ function App() {
           </aside>
 
           <div className="careers-page-content">
-            {isCareerDetailRoute && selectedCareerJob ? (
+            {isCareerDetailRoute ? (
+              selectedCareerJob ? (
               <section className="career-detail-shell">
                 <div className="career-detail-layout">
                   <div className="career-detail-content">
@@ -3062,6 +3139,32 @@ function App() {
                   </div>
                 </div>
               </section>
+              ) : (
+                <section className="career-detail-shell">
+                  <div className="career-detail-layout">
+                    <div className="career-detail-content">
+                      <div className="career-detail-top-row">
+                        <a className="career-back-link entrance-seq entrance-1" href="/careers">
+                          <span className="career-back-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24">
+                              <path d="M16 16L8 8M14 8H8v6" />
+                            </svg>
+                          </span>
+                          Back to careers
+                        </a>
+                      </div>
+                      <h1 className="entrance-seq entrance-2">
+                        {hasLoadedContent ? 'Role not found' : 'Loading role details...'}
+                      </h1>
+                      <p className="entrance-seq entrance-3">
+                        {hasLoadedContent
+                          ? 'This job post is unavailable or has been removed.'
+                          : 'Please wait while we load the job details.'}
+                      </p>
+                    </div>
+                  </div>
+                </section>
+              )
             ) : (
               <>
                 <p className="careers-hiring-pill entrance-seq entrance-1">We&apos;re hiring!</p>
@@ -3107,7 +3210,7 @@ function App() {
                       >
                         <div className="career-job-main">
                           <h2>{job.title}</h2>
-                          <p>{job.summary}</p>
+                          <p>{truncateText(job.summary, 110)}</p>
                           <div className="career-job-meta">
                             <span className="career-meta-pill career-meta-pill-location">
                               {job.location_label || job.workplace_type || 'Remote'}
@@ -3130,6 +3233,209 @@ function App() {
                 </section>
               </>
             )}
+          </div>
+        </section>
+      </main>
+    )
+  }
+
+  if (isTeamRoute) {
+    return (
+      <main className="careers-page-shell team-page-shell">
+        <header className={`top-nav top-nav-global return-visible returning-header careers-return-header ${showCareersReturnHeader ? '' : 'scroll-hidden'}`}>
+          <div className="nav-bubble">
+            <a className="brand" href="/">
+              <img src="/SYNERGY logo.png" alt="Synergy Project Management" className="brand-wordmark-image" />
+            </a>
+            <nav className="menu">
+              <a href="/" className={navClass('#home')}>Home</a>
+              <a href="/services/project-management" className={serviceNavClass()}>Services</a>
+              <a href="/industries" className={industriesNavClass()}>Industries</a>
+              <a href="/about-us" className={aboutNavClass()}>About us</a>
+              <a href="/team" className={navClass('/team')}>Our Team</a>
+              <a href="/careers" className={careersNavClass()}>Careers</a>
+              <a href="/contact-us" className={contactNavClass()}>Contact us</a>
+            </nav>
+            <button
+              className="menu-toggle"
+              onClick={() => setIsMobileMenuOpen((open) => !open)}
+              aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-nav-drawer"
+            >
+              {isMobileMenuOpen ? 'Close' : 'Menu'}
+            </button>
+            <button className="call-btn" onClick={navigateToContact}>
+              Get in touch
+              <span className="call-btn-icon" aria-hidden="true">
+                <UpRightArrowIcon />
+              </span>
+            </button>
+          </div>
+        </header>
+        <header className="top-nav careers-page-header">
+          <div className="nav-bubble">
+            <a className="brand" href="/">
+              <img
+                src="/SYNERGY logo.png"
+                alt={siteContent.branding.company_name}
+                className="brand-wordmark-image careers-brand-desktop"
+              />
+              <img
+                src="/SYNERGY logo.png"
+                alt={siteContent.branding.company_name}
+                className="brand-wordmark-image careers-brand-mobile"
+              />
+            </a>
+            <nav className="menu">
+              <a href="/" className={navClass('#home')}>Home</a>
+              <a href="/services/project-management" className={serviceNavClass()}>Services</a>
+              <a href="/industries" className={industriesNavClass()}>Industries</a>
+              <a href="/about-us" className={aboutNavClass()}>About us</a>
+              <a href="/team" className={navClass('/team')}>Our Team</a>
+              <a href="/careers" className={careersNavClass()}>Careers</a>
+              <a href="/contact-us" className={contactNavClass()}>Contact us</a>
+            </nav>
+            <button
+              className="menu-toggle"
+              onClick={() => setIsMobileMenuOpen((open) => !open)}
+              aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-nav-drawer"
+            >
+              {isMobileMenuOpen ? 'Close' : 'Menu'}
+            </button>
+          </div>
+          <button className="call-btn" onClick={navigateToContact}>
+            Get in touch
+            <span className="call-btn-icon" aria-hidden="true">
+              <UpRightArrowIcon />
+            </span>
+          </button>
+        </header>
+        <section className="careers-page-panel team-page-panel">
+          <div
+            className={`mobile-menu-overlay ${isMobileMenuOpen ? 'open' : ''}`}
+            onClick={() => setIsMobileMenuOpen(false)}
+            aria-hidden={!isMobileMenuOpen}
+          />
+          <aside
+            id="mobile-nav-drawer"
+            className={`mobile-menu-drawer ${isMobileMenuOpen ? 'open' : ''}`}
+            aria-hidden={!isMobileMenuOpen}
+          >
+            <div className="mobile-menu-header">
+              <p className="mobile-menu-title">Menu</p>
+              <button
+                type="button"
+                className="mobile-menu-close"
+                onClick={() => setIsMobileMenuOpen(false)}
+                aria-label="Close menu"
+              >
+                ×
+              </button>
+            </div>
+            <nav className="mobile-menu-links">
+              <a href="/" className={navClass('#home')} onClick={() => setIsMobileMenuOpen(false)}>Home</a>
+              <a href="/services/project-management" className={serviceNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Services</a>
+              <a href="/industries" className={industriesNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Industries</a>
+              <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>About us</a>
+              <a href="/team" className={navClass('/team')} onClick={() => setIsMobileMenuOpen(false)}>Our Team</a>
+              <a href="/careers" className={careersNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Careers</a>
+              <a href="/contact-us" className={contactNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Contact us</a>
+            </nav>
+            {mobileConnectSection}
+            <button className="mobile-menu-call" onClick={navigateToContact}>Get in touch</button>
+          </aside>
+
+          <div className="careers-page-content team-page-content">
+            <section className="home-services-section about-home-services-section team-home-services-section" aria-label="Team showcase">
+              <div className="home-services-header">
+                <div className="home-services-heading-row">
+                  <h2>The Minds Behind The Momentum</h2>
+                </div>
+              </div>
+
+              {isMobileViewport ? (
+                <>
+                  <div className="team-mobile-carousel-viewport">
+                    <div
+                      className="team-mobile-carousel-track"
+                      style={{ transform: `translateX(-${teamMobileIndex * 100}%)` }}
+                    >
+                      {teamMembers.map((member) => (
+                        <article key={`team-mobile-${member.id}`} className="home-services-item team-services-item">
+                          <div
+                            className="home-services-card team-services-card"
+                            style={
+                              member.avatar_url
+                                ? ({
+                                    backgroundImage: `url("${member.avatar_url}")`,
+                                    backgroundSize: 'cover',
+                                    backgroundPosition: 'center',
+                                  } as CSSProperties)
+                                : undefined
+                            }
+                          >
+                            <h3>{member.name}</h3>
+                          </div>
+                          <p>{member.bio || member.role}</p>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="about-team-dots team-mobile-dots" role="tablist" aria-label="Team carousel navigation">
+                    {teamDotTargets.map((targetIndex, index) => (
+                      <button
+                        key={`team-mobile-dot-${index}`}
+                        type="button"
+                        className={`about-team-dot ${teamActiveDotIndex === index ? 'active' : ''}`}
+                        onClick={() => setTeamMobileIndex(targetIndex)}
+                        aria-label={`Show team slide ${index + 1}`}
+                        aria-selected={teamActiveDotIndex === index}
+                      />
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="home-services-grid">
+                    {visibleTeamMembers.map((member) => (
+                      <article key={`team-${member.id}`} className="home-services-item team-services-item">
+                        <div
+                          className="home-services-card team-services-card"
+                          style={
+                            member.avatar_url
+                              ? ({
+                                  backgroundImage: `url("${member.avatar_url}")`,
+                                  backgroundSize: 'cover',
+                                  backgroundPosition: 'center',
+                                } as CSSProperties)
+                              : undefined
+                          }
+                        >
+                          <h3>{member.name}</h3>
+                        </div>
+                        <p>{member.bio || member.role}</p>
+                      </article>
+                    ))}
+                  </div>
+                  {visibleTeamMembers.length < teamMembers.length ? (
+                    <div className="team-load-more-row">
+                      <button
+                        type="button"
+                        className="home-services-view-all primary team-load-more-btn"
+                        onClick={() =>
+                          setTeamVisibleCount((current) => Math.min(teamMembers.length, current + 8))
+                        }
+                      >
+                        Load more
+                      </button>
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </section>
           </div>
         </section>
       </main>
@@ -3162,6 +3468,7 @@ function App() {
                 <a href="/services/project-management" className={serviceNavClass()}>Services</a>
                 <a href="/industries" className={industriesNavClass()}>Industries</a>
                 <a href="/about-us" className={aboutNavClass()}>About us</a>
+                <a href="/team" className={navClass('/team')}>Our Team</a>
                 <a href="/careers" className={careersNavClass()}>Careers</a>
                 <a href="/contact-us" className={contactNavClass()}>Contact us</a>
               </nav>
@@ -3219,6 +3526,9 @@ function App() {
               </a>
               <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
                 About us
+              </a>
+              <a href="/team" className={navClass('/team')} onClick={() => setIsMobileMenuOpen(false)}>
+                Our Team
               </a>
               <a href="/careers" className={careersNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
                 Careers
@@ -3357,6 +3667,7 @@ function App() {
     isHomeRoute ||
     isProjectsRoute ||
     isAboutRoute ||
+    isTeamRoute ||
     isCareersRoute ||
     isContactRoute ||
     isTermsRoute ||
@@ -3379,6 +3690,7 @@ function App() {
               <a href="/services/project-management" className={serviceNavClass()}>Services</a>
               <a href="/industries" className={industriesNavClass()}>Industries</a>
               <a href="/about-us" className={aboutNavClass()}>About us</a>
+              <a href="/team" className={navClass('/team')}>Our Team</a>
               <a href="/careers" className={careersNavClass()}>Careers</a>
               <a href="/contact-us" className={contactNavClass()}>Contact us</a>
             </nav>
@@ -3439,6 +3751,7 @@ function App() {
           <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
             About us
           </a>
+          <a href="/team" className={navClass('/team')} onClick={() => setIsMobileMenuOpen(false)}>Our Team</a>
           <a href="/careers" className={careersNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
             Careers
           </a>
@@ -3489,6 +3802,7 @@ function App() {
                   <a href="/services/project-management" className={serviceNavClass()}>Services</a>
                   <a href="/industries" className={industriesNavClass()}>Industries</a>
                   <a href="/about-us" className={aboutNavClass()}>About us</a>
+                  <a href="/team" className={navClass('/team')}>Our Team</a>
                   <a href="/careers" className={careersNavClass()}>Careers</a>
                   <a href="/contact-us" className={contactNavClass()}>Contact us</a>
                 </nav>

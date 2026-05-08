@@ -3087,6 +3087,124 @@ h1 {
   }
 }
 
+.team-page-shell {
+  min-height: 100vh;
+}
+
+.team-page-panel {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+}
+
+.team-page-content {
+  width: min(1440px, 100%);
+}
+
+.team-home-services-section {
+  width: 100%;
+  min-height: 0;
+  padding-top: 1.6rem;
+  background: transparent;
+}
+
+.team-home-services-section .home-services-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.team-load-more-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.2rem;
+}
+
+.team-load-more-btn {
+  margin: 0;
+}
+
+.team-services-item > p {
+  min-height: 58px;
+}
+
+.team-services-card {
+  cursor: default;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 260ms ease, filter 260ms ease;
+  will-change: transform;
+}
+
+.team-services-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(12, 27, 48, 0.72), rgba(12, 27, 48, 0.12) 56%, rgba(12, 27, 48, 0.02));
+  transition: background 260ms ease, opacity 260ms ease;
+}
+
+.team-services-card h3 {
+  z-index: 1;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), color 260ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .team-services-item:hover .team-services-card {
+    transform: translateY(-6px) scale(1.015);
+    box-shadow: 0 22px 42px rgba(7, 24, 46, 0.28);
+    filter: saturate(1.08);
+  }
+
+  .team-services-item:hover .team-services-card::after {
+    background: linear-gradient(to top, rgba(9, 26, 48, 0.82), rgba(9, 26, 48, 0.2) 56%, rgba(9, 26, 48, 0.04));
+  }
+
+  .team-services-item:hover .team-services-card h3 {
+    transform: translateY(-3px);
+    color: #ffffff;
+  }
+}
+
+
+.team-mobile-carousel-viewport {
+  overflow: hidden;
+}
+
+.team-mobile-carousel-track {
+  display: flex;
+  transition: transform 0.35s ease;
+  will-change: transform;
+}
+
+.team-mobile-carousel-track .team-services-item {
+  flex: 0 0 100%;
+}
+
+.team-mobile-dots {
+  margin-top: 0.8rem;
+}
+
+@media (max-width: 900px) {
+  .team-home-services-section .home-services-grid {
+    grid-template-columns: 1fr;
+    margin-top: 1.1rem;
+  }
+
+  .team-home-services-section .home-services-header h2 {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .team-home-services-section .home-services-heading-row {
+    align-items: flex-start;
+  }
+
+  .team-mobile-carousel-viewport {
+    margin-top: 1.1rem;
+  }
+
+  .team-home-services-section .team-services-item > p {
+    min-height: 0;
+  }
+}
+
 .services-showcase-section {
   --services-showcase-gap: 0.85rem;
   height: auto;
@@ -4350,7 +4468,9 @@ h1 {
 .footer-reference-socials {
   margin-top: 0.4rem;
   display: inline-flex;
-  gap: 0.45rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
 }
 
 .footer-reference-socials a {
