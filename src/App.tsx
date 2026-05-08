@@ -1897,7 +1897,18 @@ function App() {
               <div className="about-team-heading-left">
                 <h2>Our team</h2>
               </div>
-              <div className="about-team-nav-arrows" aria-label="Team navigation">
+              <div className="about-team-heading-actions">
+                <button
+                  type="button"
+                  className="home-services-view-all primary"
+                  onClick={() => navigateWithTransition('/team')}
+                >
+                  View all staff
+                  <span aria-hidden="true">
+                    <UpRightArrowIcon />
+                  </span>
+                </button>
+                <div className="about-team-nav-arrows" aria-label="Team navigation">
                 <button
                   type="button"
                   className="about-team-nav-arrow"
@@ -1920,12 +1931,9 @@ function App() {
                     <path d="M9 6l6 6-6 6" />
                   </svg>
                 </button>
+                </div>
               </div>
             </div>
-            <p>
-              We combine leadership, coordination, and specialist expertise to keep every program aligned, proactive,
-              and consistently delivered to the highest standard.
-            </p>
           </header>
           <div className="about-team-cards-viewport">
             <div
