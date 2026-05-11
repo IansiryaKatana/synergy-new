@@ -157,7 +157,7 @@ const fallback: SiteContent = {
     team_title: 'Meet the team behind the growth.',
     insights_title: 'Projects.',
     insights_description:
-      'We are a leading Project Management Company providing an International proactive, hands-on approach to managing projects.',
+      'We are a leading project management company providing an international, proactive, hands-on approach to managing projects.',
     footer_address: '287 Mission Street\nSan Francisco, CA 94110',
     footer_newsletter_title: 'Subscribe to our newsletter.',
     footer_pitch:
@@ -179,15 +179,15 @@ const fallback: SiteContent = {
     { id: 'sidhiq-ahemedkunhi', initials: 'SA', name: 'Sidhiq Ahemedkunhi', role: 'Project Financial Officer (UAE)', number: '03', email: 'sidhiq.ahemedkunhi@synergypm.com', bio: 'Manages UAE project financial operations, controls, and reporting requirements.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 3, is_active: true },
     { id: 'rajesh-sebastain', initials: 'RS', name: 'Rajesh Sebastain', role: 'Project Financial Officer (UK)', number: '04', email: 'rajesh.sebastain@synergypm.com', bio: 'Oversees UK project budgets, compliance, and financial performance reporting.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 4, is_active: true },
     { id: 'vishnu-balachnadran', initials: 'VB', name: 'Vishnu Balachnadran', role: 'Financial Auditor', number: '05', email: 'vishnu.balachnadran@synergypm.com', bio: 'Reviews financial records, validates controls, and highlights risk exposure.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 5, is_active: true },
-    { id: 'saira', initials: 'SA', name: 'Saira', role: 'Human Resource Manager', number: '06', email: 'saira@synergypm.com', bio: 'Leads recruitment, people operations, and employee engagement initiatives.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 6, is_active: true },
+    { id: 'saira', initials: 'SA', name: 'Saira', role: 'Human Resources Manager', number: '06', email: 'saira@synergypm.com', bio: 'Leads recruitment, people operations, and employee engagement initiatives.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 6, is_active: true },
     { id: 'divya-velikkath', initials: 'DV', name: 'Divya Velikkath', role: 'HR Coordinator', number: '07', email: 'divya.velikkath@synergypm.com', bio: 'Supports HR workflows, onboarding, and employee lifecycle coordination.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 7, is_active: true },
     { id: 'rituja-shahane', initials: 'RS', name: 'Rituja Shahane', role: 'Social Media Specialist', number: '08', email: 'rituja.shahane@synergypm.com', bio: 'Plans and executes social campaigns to improve brand reach and engagement.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 8, is_active: true },
     { id: 'rohan-smith', initials: 'RS', name: 'Rohan Smith', role: 'Paralegal', number: '09', email: 'rohan.smith@synergypm.com', bio: 'Supports legal documentation, case preparation, and compliance follow-through.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 9, is_active: true },
-    { id: 'ankita-ananad-acharya', initials: 'AA', name: 'Ankita Ananad Acharya', role: 'Compliance Officer', number: '10', email: 'ankita.ananad.acharya@synergypm.com', bio: 'Maintains compliance programs, audits controls, and enforces policy standards.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 10, is_active: true },
+    { id: 'ankita-ananad-acharya', initials: 'AA', name: 'Ankita Ananad Acharya', role: 'Compliance Officer', number: '10', email: 'ankita.ananad.acharya@synergypm.com', bio: 'Maintains compliance programmes, audits controls, and enforces policy standards.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 10, is_active: true },
     { id: 'adeeb-noor-mahomed', initials: 'AN', name: 'Adeeb Noor Mahomed', role: 'Compliance Officer', number: '11', email: 'adeeb.noor.mahomed@synergypm.com', bio: 'Monitors regulatory requirements and supports audit-ready compliance operations.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 11, is_active: true },
     { id: 'natalia-anna-gosciniak', initials: 'NG', name: 'Natalia Anna Gosciniak', role: 'Marketing Director', number: '12', email: 'natalia.anna.gosciniak@synergypm.com', bio: 'Leads marketing strategy, positioning, and growth initiatives across channels.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 12, is_active: true },
-    { id: 'raina-ezechiel', initials: 'RE', name: 'Raina Ezechiel', role: 'Marketing Manager', number: '13', email: 'raina.ezechiel@synergypm.com', bio: 'Drives campaign planning, execution, and performance optimization.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 13, is_active: true },
-    { id: 'shibila-hakeem', initials: 'SH', name: 'Shibila Hakeem', role: 'Senior Marketing Executive', number: '14', email: 'shibila.hakeem@synergypm.com', bio: 'Executes channel programs and tracks marketing conversion outcomes.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 14, is_active: true },
+    { id: 'raina-ezechiel', initials: 'RE', name: 'Raina Ezechiel', role: 'Marketing Manager', number: '13', email: 'raina.ezechiel@synergypm.com', bio: 'Drives campaign planning, execution, and performance optimisation.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 13, is_active: true },
+    { id: 'shibila-hakeem', initials: 'SH', name: 'Shibila Hakeem', role: 'Senior Marketing Executive', number: '14', email: 'shibila.hakeem@synergypm.com', bio: 'Executes channel programmes and tracks marketing conversion outcomes.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 14, is_active: true },
     { id: 'devapriya-venugopal', initials: 'DV', name: 'Devapriya Venugopal', role: 'Marketing Assistant', number: '15', email: 'devapriya.venugopal@synergypm.com', bio: 'Supports campaign operations, content scheduling, and reporting workflows.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 15, is_active: true },
     { id: 'dhanashree-vishwanath', initials: 'DV', name: 'Dhanashree Vishwanath', role: 'Senior Graphic Designer', number: '16', email: 'dhanashree.vishwanath@synergypm.com', bio: 'Designs visual assets and ensures brand consistency across outputs.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 16, is_active: true },
     { id: 'muhammed-jadeer', initials: 'MJ', name: 'Muhammed Jadeer', role: 'Senior Graphic Designer', number: '17', email: 'muhammed.jadeer@synergypm.com', bio: 'Creates high-impact graphics for campaigns, web, and production deliverables.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 17, is_active: true },
@@ -195,7 +195,7 @@ const fallback: SiteContent = {
     { id: 'john-benedick-amo', initials: 'JA', name: 'John Benedick Amo', role: 'Production Coordinator', number: '19', email: 'john.benedick.amo@synergypm.com', bio: 'Coordinates production tasks, handoffs, and team communication.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 19, is_active: true },
     { id: 'misba-naz-saikalgar', initials: 'MS', name: 'Misba Naz Saikalgar', role: 'Sales Coordinator', number: '20', email: 'misba.naz.saikalgar@synergypm.com', bio: 'Supports sales operations, lead workflows, and follow-up execution.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 20, is_active: true },
     { id: 'wasim-iqbal', initials: 'WI', name: 'Wasim Iqbal', role: 'Sales Manager', number: '21', email: 'wasim.iqbal@synergypm.com', bio: 'Leads sales strategy, pipeline growth, and team performance tracking.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 21, is_active: true },
-    { id: 'rajgopalan-vasudevan', initials: 'RV', name: 'Rajgopalan Vasudevan', role: 'Head of Operations', number: '22', email: 'rajgopalan.vasudevan@synergypm.com', bio: 'Oversees operational systems, delivery governance, and process optimization.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 22, is_active: true },
+    { id: 'rajgopalan-vasudevan', initials: 'RV', name: 'Rajgopalan Vasudevan', role: 'Head of Operations', number: '22', email: 'rajgopalan.vasudevan@synergypm.com', bio: 'Oversees operational systems, delivery governance, and process optimisation.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 22, is_active: true },
     { id: 'carmichael-galbis-anacin', initials: 'CA', name: 'Carmichael Galbis Anacin', role: 'Shopify Developer', number: '23', email: 'carmichael.galbis.anacin@synergypm.com', bio: 'Builds and maintains Shopify storefront features and integrations.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 23, is_active: true },
     { id: 'marvin-osei', initials: 'MO', name: 'Marvin Osei', role: 'Media Manager', number: '24', email: 'marvin.osei@synergypm.com', bio: 'Manages media planning, production assets, and distribution quality.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 24, is_active: true },
     { id: 'ian-sirya-katana', initials: 'IK', name: 'Ian Sirya Katana', role: 'Lead Software Developer', number: '25', email: 'ian.sirya.katana@synergypm.com', bio: 'Leads software architecture, implementation quality, and technical delivery.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 25, is_active: true },
@@ -204,7 +204,7 @@ const fallback: SiteContent = {
     { id: 'may-zin-htwe', initials: 'MH', name: 'May Zin Htwe', role: 'CRM Assistant', number: '28', email: 'may.zin.htwe@synergypm.com', bio: 'Maintains CRM records, customer lifecycle updates, and reporting accuracy.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 28, is_active: true },
     { id: 'anjelica-bergonia-verosil', initials: 'AV', name: 'Anjelica Bergonia Verosil', role: 'Personal Assistant', number: '29', email: 'anjelica.bergonia.verosil@synergypm.com', bio: 'Provides executive coordination, scheduling, and administrative support.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 29, is_active: true },
     { id: 'mohammed-rafiq-amanji', initials: 'MA', name: 'Mohammed Rafiq Amanji', role: 'Executive Assistant for CEO', number: '30', email: 'mohammed.rafiq.amanji@synergypm.com', bio: 'Supports CEO priorities through planning, communication, and follow-through.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 30, is_active: true },
-    { id: 'zohra-zoulati', initials: 'ZZ', name: 'Zohra Zoulati', role: 'Front office Executive', number: '31', email: 'zohra.zoulati@synergypm.com', bio: 'Manages front office operations, visitor experience, and communication flow.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 31, is_active: true },
+    { id: 'zohra-zoulati', initials: 'ZZ', name: 'Zohra Zoulati', role: 'Front Office Executive', number: '31', email: 'zohra.zoulati@synergypm.com', bio: 'Manages front office operations, visitor experience, and communication flow.', avatar_url: 'https://fjnzcubicgrkhbwwrtpu.supabase.co/storage/v1/object/public/media/admin/1775821932031-cjdfu8xdn6k.jpg', sort_order: 31, is_active: true },
   ],
   services: [
     {
@@ -244,12 +244,12 @@ const fallback: SiteContent = {
         {
           title: 'Regulatory Strategy & Market Entry',
           description:
-            'We define clear regulatory pathways for products and expansion by assessing approval requirements, risks, and timelines. This ensures efficient entry into markets while minimizing delays and maintaining full compliance with regional standards.',
+            'We define clear regulatory pathways for products and expansion by assessing approval requirements, risks, and timelines. This ensures efficient entry into markets while minimising delays and maintaining full compliance with regional standards.',
         },
         {
           title: 'Submissions & Authority Management',
           description:
-            'We handle all regulatory submissions, approvals, renewals, and communications with governing bodies. Documentation is maintained accurately, ensuring products remain authorized and aligned with all applicable regulatory requirements.',
+            'We handle all regulatory submissions, approvals, renewals, and communications with governing bodies. Documentation is maintained accurately, ensuring products remain authorised and aligned with all applicable regulatory requirements.',
         },
         {
           title: 'Compliance Oversight & Risk Control',
@@ -273,7 +273,7 @@ const fallback: SiteContent = {
         {
           title: 'Talent Acquisition & Workforce Planning',
           description:
-            'We attract and recruit top talent across UAE and UK markets through structured hiring, compliant contracts, and effective onboarding. Workforce planning ensures the organization scales efficiently with the right people in place.',
+            'We attract and recruit top talent across UAE and UK markets through structured hiring, compliant contracts, and effective onboarding. Workforce planning ensures the organisation scales efficiently with the right people in place.',
         },
         {
           title: 'Employee Lifecycle Management',
@@ -283,12 +283,12 @@ const fallback: SiteContent = {
         {
           title: 'Payroll, Benefits & Legal Compliance',
           description:
-            'We administer salaries, benefits, and compensation structures aligned with UAE and UK regulations. All payroll processes are accurate and compliant, ensuring employees are paid fairly while minimizing legal and financial risk.',
+            'We administer salaries, benefits, and compensation structures aligned with UAE and UK regulations. All payroll processes are accurate and compliant, ensuring employees are paid fairly while minimising legal and financial risk.',
         },
         {
           title: 'Performance, Engagement & Development',
           description:
-            'We drive employee performance through structured appraisals, training programs, and engagement initiatives. This builds a motivated, skilled workforce aligned with company goals and fosters a strong, consistent organizational culture.',
+            'We drive employee performance through structured appraisals, training programmes, and engagement initiatives. This builds a motivated, skilled workforce aligned with company goals and fosters a strong, consistent organisational culture.',
         },
       ],
       sort_order: 3,
@@ -302,7 +302,7 @@ const fallback: SiteContent = {
         {
           title: 'Project Planning & Strategy',
           description:
-            'We define clear project scopes, timelines, and resource plans aligned with business objectives. This ensures every project begins with structured direction, minimizing risks and setting a strong foundation for successful delivery.',
+            'We define clear project scopes, timelines, and resource plans aligned with business objectives. This ensures every project begins with structured direction, minimising risks and setting a strong foundation for successful delivery.',
         },
         {
           title: 'Execution & Coordination',
@@ -312,7 +312,7 @@ const fallback: SiteContent = {
         {
           title: 'Monitoring & Performance Control',
           description:
-            'We track progress through milestones, KPIs, and reporting frameworks. Issues are identified early, adjustments are made proactively, and performance is continuously optimized to keep projects on schedule and within scope.',
+            'We track progress through milestones, KPIs, and reporting frameworks. Issues are identified early, adjustments are made proactively, and performance is continuously optimised to keep projects on schedule and within scope.',
         },
         {
           title: 'Delivery & Continuous Improvement',
@@ -325,10 +325,10 @@ const fallback: SiteContent = {
     },
   ],
   insights: [
-    { id: 'insight-1', chip: 'Status: Completed, December 2020', date_label: 'Location: Giovanni Boutique suites', title: 'G + 14 Hotel Apartment', alt_style: false, sort_order: 1, is_active: true },
-    { id: 'insight-2', chip: 'Status: Completed, 2016', date_label: 'Location: Giovanni Boutique suites', title: 'G + 20 Hotel Apartment', alt_style: true, sort_order: 2, is_active: true },
-    { id: 'insight-3', chip: 'Status: Under Construction', date_label: 'Location: Giovanni Boutique suites', title: 'G + 11 Hotel Apartment', alt_style: false, sort_order: 3, is_active: true },
-    { id: 'insight-4', chip: 'Status: Ongoing', date_label: 'Location: Giovanni Boutique suites', title: 'Major Hospital Project', alt_style: true, sort_order: 4, is_active: true },
+    { id: 'insight-1', chip: 'Status: Completed, December 2020', date_label: 'Location: Giovanni Boutique Suites', title: 'G + 14 Hotel Apartment', alt_style: false, sort_order: 1, is_active: true },
+    { id: 'insight-2', chip: 'Status: Completed, 2016', date_label: 'Location: Giovanni Boutique Suites', title: 'G + 20 Hotel Apartment', alt_style: true, sort_order: 2, is_active: true },
+    { id: 'insight-3', chip: 'Status: Under Construction', date_label: 'Location: Giovanni Boutique Suites', title: 'G + 11 Hotel Apartment', alt_style: false, sort_order: 3, is_active: true },
+    { id: 'insight-4', chip: 'Status: Ongoing', date_label: 'Location: Giovanni Boutique Suites', title: 'Major Hospital Project', alt_style: true, sort_order: 4, is_active: true },
   ],
   media: [
     { id: 'trust-1', kind: 'trust', label: 'Venice', value: 'Venice', sort_order: 1, is_active: true },

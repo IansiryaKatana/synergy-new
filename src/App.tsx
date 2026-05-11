@@ -1001,7 +1001,7 @@ function App() {
     {
       title: 'Marketing',
       description:
-        'We drive measurable growth through strategy, data-led marketing. Our approach combines performance campaigns, brand positioning, and customer journey optimization to generate consistent results. From awareness to conversion, we build marketing systems that scale alongside the business.',
+        'We drive measurable growth through strategy and data-led marketing. Our approach combines performance campaigns, brand positioning, and customer journey optimisation to generate consistent results. From awareness to conversion, we build marketing systems that scale alongside the business.',
     },
     {
       title: 'Design',
@@ -1016,7 +1016,7 @@ function App() {
     {
       title: 'Industry Development & Operations',
       description:
-        'Beyond individual sectors, we actively build, manage, and scale businesses across multiple industries. Our role extends from strategy and setup to execution and optimization, allowing us to create structured, high-performing operations in each vertical we enter.',
+        'Beyond individual sectors, we actively build, manage, and scale businesses across multiple industries. Our role extends from strategy and setup to execution and optimisation, allowing us to create structured, high-performing operations in each vertical we enter.',
     },
   ]
   const teamSectionStyle = siteContent.branding.homepage_team_background_url
@@ -1505,7 +1505,7 @@ function App() {
 
     ensureMetaByProperty('og:type', selectedCareerJob ? 'article' : 'website')
     ensureMetaByProperty('og:site_name', siteName)
-    ensureMetaByProperty('og:locale', 'en_US')
+    ensureMetaByProperty('og:locale', 'en_GB')
     ensureMetaByProperty('og:title', pageTitle)
     ensureMetaByProperty('og:description', pageDescription)
     ensureMetaByProperty('og:url', currentUrl)
@@ -1633,7 +1633,7 @@ function App() {
             </div>
             <p>
               We help leaders navigate complexity, solve critical challenges, and build stronger,
-              more resilient organizations for the future.
+              more resilient organisations for the future.
             </p>
           </div>
           <div className="footer-reference-newsletter-row">
@@ -1760,7 +1760,7 @@ function App() {
             <div className="nav-bubble">
               <a className="brand" href="/">
                 <img
-                  src="/syngergy-logo.png"
+                  src="/SYNERGY logo.png"
                   alt={`${siteContent.branding.company_name} logo`}
                   className="brand-wordmark-image about-brand-desktop"
                   decoding="async"
@@ -2165,8 +2165,8 @@ function App() {
               </article>
               <article className="industries-hero-headline">
                 <h1>
-                  <span>Operating At Scale</span>
-                  <span>Delivering Impact</span>
+                  <span>Operating at scale</span>
+                  <span>Delivering impact</span>
                 </h1>
                 <p>
                   We build and operate businesses across multiple industries with focus, discipline, and a long-term
@@ -2321,7 +2321,7 @@ function App() {
             <div className="nav-bubble">
               <a className="brand" href="/">
                 <img
-                  src="/syngergy-logo.png"
+                  src="/SYNERGY logo.png"
                   alt={`${siteContent.branding.company_name} logo`}
                   className="brand-wordmark-image contact-brand-desktop"
                   decoding="async"
@@ -2628,7 +2628,7 @@ function App() {
                   <h2>5. Intellectual Property Rights</h2>
                   <p>
                     We are the owner or licensee of all intellectual property rights in our website and in the material
-                    published on it. Those works are protected by applicable copyright, trademark, and intellectual
+                    published on it. Those works are protected by applicable copyright, trade marks, and intellectual
                     property laws. All such rights are reserved.
                   </p>
                   <p>
@@ -2762,7 +2762,7 @@ function App() {
             ) : isCookieRoute ? (
               <div className="policy-content">
                 <section>
-                  <h2>Last Update: 04/05/2026</h2>
+                  <h2>Last updated: 4 May 2026</h2>
                 </section>
                 <section>
                   <h2>Introduction</h2>
@@ -2775,7 +2775,7 @@ function App() {
                   <h2>What are cookies and similar technologies</h2>
                   <p>
                     Cookies are small text files placed on your device when you visit a website. We also use similar
-                    technologies, such as pixels, tags, and local storage, to recognize your device, remember
+                    technologies, such as pixels, tags, and local storage, to recognise your device, remember
                     preferences, and understand how the site is used.
                   </p>
                 </section>
@@ -2951,7 +2951,7 @@ function App() {
                   <p>Requests can be made using the contact details below.</p>
                 </section>
                 <section>
-                  <h2>10. Third-Party Links</h2>
+                  <h2>10. Third-party links</h2>
                   <p>Our website may contain links to third-party websites.</p>
                   <p>We are not responsible for the privacy practices of those websites.</p>
                 </section>
@@ -3590,7 +3590,7 @@ function App() {
             <div className="nav-bubble">
               <a className="brand" href="/">
                 <img
-                  src="/syngergy-logo.png"
+                  src="/SYNERGY logo.png"
                   alt={`${siteContent.branding.company_name} logo`}
                   className="brand-wordmark-image about-brand-desktop"
                   decoding="async"
@@ -3968,7 +3968,7 @@ function App() {
               <div className="nav-bubble">
                 <a className="brand" href="/">
                   <img
-                    src="/syngergy-logo.png"
+                    src="/SYNERGY logo.png"
                     alt={`${siteContent.branding.company_name} logo`}
                     className="brand-wordmark-image"
                     decoding="async"

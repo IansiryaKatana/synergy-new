@@ -78,7 +78,7 @@ function jobApplicantTemplate(payload: JobApplicationPayload, jobTitle: string) 
     `
       <p style="margin:0 0 12px;color:#0f172a;">Dear ${escapeHtml(payload.full_name)},</p>
       <p style="margin:0 0 12px;color:#334155;line-height:1.6;">
-        We appreciate your interest in joining our team. Our hiring team will review your profile and contact you on next steps.
+        We appreciate your interest in joining our team. Our hiring team will review your profile and contact you with the next steps.
       </p>
       <p style="margin:0;color:#334155;line-height:1.6;">
         For any updates, please reply to this email.

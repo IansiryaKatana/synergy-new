@@ -1773,12 +1773,12 @@ function getDefaultServiceDetailSections(
       {
         title: 'Regulatory Strategy & Market Entry',
         description:
-          'We define clear regulatory pathways for products and expansion by assessing approval requirements, risks, and timelines. This ensures efficient entry into markets while minimizing delays and maintaining full compliance with regional standards.',
+          'We define clear regulatory pathways for products and expansion by assessing approval requirements, risks, and timelines. This ensures efficient entry into markets while minimising delays and maintaining full compliance with regional standards.',
       },
       {
         title: 'Submissions & Authority Management',
         description:
-          'We handle all regulatory submissions, approvals, renewals, and communications with governing bodies. Documentation is maintained accurately, ensuring products remain authorized and aligned with all applicable regulatory requirements.',
+          'We handle all regulatory submissions, approvals, renewals, and communications with governing bodies. Documentation is maintained accurately, ensuring products remain authorised and aligned with all applicable regulatory requirements.',
       },
     ]
   }
@@ -1788,7 +1788,7 @@ function getDefaultServiceDetailSections(
       {
         title: 'Talent Acquisition & Workforce Planning',
         description:
-          'We attract and recruit top talent across UAE and UK markets through structured hiring, compliant contracts, and effective onboarding. Workforce planning ensures the organization scales efficiently with the right people in place.',
+          'We attract and recruit top talent across UAE and UK markets through structured hiring, compliant contracts, and effective onboarding. Workforce planning ensures the organisation scales efficiently with the right people in place.',
       },
       {
         title: 'Employee Lifecycle Management',
@@ -1803,7 +1803,7 @@ function getDefaultServiceDetailSections(
       {
         title: 'Project Planning & Strategy',
         description:
-          'We define clear project scopes, timelines, and resource plans aligned with business objectives. This ensures every project begins with structured direction, minimizing risks and setting a strong foundation for successful delivery.',
+          'We define clear project scopes, timelines, and resource plans aligned with business objectives. This ensures every project begins with structured direction, minimising risks and setting a strong foundation for successful delivery.',
       },
       {
         title: 'Execution & Coordination',

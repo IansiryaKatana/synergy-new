@@ -17,7 +17,7 @@ insert into team_members (id, initials, name, role, bio, email, number, avatar_u
 ('irshad-salih','IS','Irshad Salih','Audit Accountant','Supports audits, validates controls, and ensures reliable financial compliance records.','irshad.salih@synergypm.com','47',null,47,true),
 ('jibeesh-jacob','JJ','Jibeesh Jacob','Operations Assistant','Supports core operations through accurate coordination, tracking, and execution.','jibeesh.jacob@synergypm.com','48',null,48,true),
 ('joanna-reyes','JR','Joanna Reyes','Administrative Assistant','Supports office administration, document flow, and day-to-day team coordination.','joanna.reyes@synergypm.com','49',null,49,true),
-('joyel-jose','JJ','Joyel Jose','Odoo Developer','Develops and optimizes Odoo modules to improve workflows and system reliability.','joyel.jose@synergypm.com','50',null,50,true),
+('joyel-jose','JJ','Joyel Jose','Odoo Developer','Develops and optimises Odoo modules to improve workflows and system reliability.','joyel.jose@synergypm.com','50',null,50,true),
 ('kimenthri-govender','KG','Kimenthri Govender','Sales Admin Assistant','Supports sales administration, pipeline updates, and follow-up coordination tasks.','kimenthri.govender@synergypm.com','51',null,51,true),
 ('krishna-devi','KD','Krishna Devi','Operations Assistant','Supports core operations through accurate coordination, tracking, and execution.','krishna.devi@synergypm.com','52',null,52,true),
 ('manshaf-siddiqui','MS','Manshaf Siddiqui','Web Developer','Builds and maintains reliable web features that support daily business operations.','manshaf.siddiqui@synergypm.com','53',null,53,true),
