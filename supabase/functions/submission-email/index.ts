@@ -26,14 +26,20 @@ type SubmissionRequest =
   | { type: 'job_application'; payload: JobApplicationPayload }
   | { type: 'contact_inquiry'; payload: ContactInquiryPayload }
 
-const allowedOrigins = new Set([
-  'https://synergypm.ae',
-  'https://www.synergypm.ae',
-  'http://localhost:5173',
-])
+const allowedOrigins = new Set(['https://synergypm.ae', 'https://www.synergypm.ae'])
+
+function isAllowedDevOrigin(origin: string) {
+  try {
+    const parsed = new URL(origin)
+    return parsed.protocol === 'http:' && (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1')
+  } catch {
+    return false
+  }
+}
 
 function getCorsHeaders(origin: string | null) {
-  const resolvedOrigin = origin && allowedOrigins.has(origin) ? origin : 'https://synergypm.ae'
+  const resolvedOrigin =
+    origin && (allowedOrigins.has(origin) || isAllowedDevOrigin(origin)) ? origin : 'https://synergypm.ae'
   return {
     'Access-Control-Allow-Origin': resolvedOrigin,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
