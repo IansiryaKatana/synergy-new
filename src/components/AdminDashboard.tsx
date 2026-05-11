@@ -29,6 +29,7 @@ import {
   type InsightItem,
   type JobPost,
   type MediaItem,
+  type NewsletterSubmission,
   type ServiceItem,
   type SmtpSettings,
   type TeamMember,
@@ -47,7 +48,7 @@ type AdminProps = {
   onRefresh: () => Promise<void>
 }
 
-export type AdminPage = 'dashboard' | 'branding' | 'smtp' | 'team' | 'services' | 'insights' | 'media' | 'careers'
+export type AdminPage = 'dashboard' | 'branding' | 'smtp' | 'newsletter' | 'team' | 'services' | 'insights' | 'media' | 'careers'
 
 type SidebarItem = {
   id: AdminPage
@@ -75,6 +76,7 @@ const SIDEBAR_ITEMS: SidebarItem[] = [
   { id: 'dashboard', label: 'Dashboard', href: '/backend', icon: LayoutGrid },
   { id: 'branding', label: 'Branding', href: '/backend/branding', icon: Palette },
   { id: 'smtp', label: 'SMTP Secrets', href: '/backend/smtp', icon: Globe },
+  { id: 'newsletter', label: 'Newsletter', href: '/backend/newsletter', icon: Users },
   { id: 'team', label: 'Team', href: '/backend/team', icon: Users },
   { id: 'services', label: 'Services', href: '/backend/services', icon: Briefcase },
   { id: 'insights', label: 'Insights', href: '/backend/insights', icon: ChartNoAxesColumn },
@@ -199,6 +201,10 @@ export function AdminDashboard(props: AdminProps) {
   const [jobsCsvConfirmOpen, setJobsCsvConfirmOpen] = useState(false)
   const [jobsCsvFileName, setJobsCsvFileName] = useState('')
   const [jobsCsvPreviewRows, setJobsCsvPreviewRows] = useState<JobsCsvPreviewRow[]>([])
+  const [newsletterRows, setNewsletterRows] = useState<NewsletterSubmission[]>([])
+  const [newsletterSearch, setNewsletterSearch] = useState('')
+  const [newsletterStartDate, setNewsletterStartDate] = useState('')
+  const [newsletterEndDate, setNewsletterEndDate] = useState('')
 
   const rows = useMemo(() => {
     if (entity === 'team_members') return props.team
@@ -249,6 +255,19 @@ export function AdminDashboard(props: AdminProps) {
     if (!query) return mediaFiles
     return mediaFiles.filter((item) => item.path.toLowerCase().includes(query) || item.publicUrl.toLowerCase().includes(query))
   }, [mediaFiles, mediaLibrarySearch])
+  const filteredNewsletterRows = useMemo(() => {
+    const query = newsletterSearch.trim().toLowerCase()
+    const start = newsletterStartDate ? new Date(`${newsletterStartDate}T00:00:00`) : null
+    const end = newsletterEndDate ? new Date(`${newsletterEndDate}T23:59:59.999`) : null
+    return newsletterRows.filter((row) => {
+      const submittedAt = new Date(row.submitted_at)
+      if (Number.isNaN(submittedAt.getTime())) return false
+      if (start && submittedAt < start) return false
+      if (end && submittedAt > end) return false
+      if (!query) return true
+      return String(row.email ?? '').toLowerCase().includes(query)
+    })
+  }, [newsletterRows, newsletterSearch, newsletterStartDate, newsletterEndDate])
 
   const perPage = useMemo(() => {
     if (entity === 'team_members') return 10
@@ -461,6 +480,19 @@ export function AdminDashboard(props: AdminProps) {
       }
     }
     void loadSmtp()
+  }, [props.page])
+
+  useEffect(() => {
+    const loadNewsletter = async () => {
+      if (props.page !== 'newsletter') return
+      try {
+        const rows = await contentApi.getNewsletterSubmissions()
+        setNewsletterRows(rows)
+      } catch (err) {
+        setStatus(err instanceof Error ? err.message : 'Failed to load newsletter submissions.')
+      }
+    }
+    void loadNewsletter()
   }, [props.page])
 
   useEffect(() => {
@@ -704,6 +736,28 @@ export function AdminDashboard(props: AdminProps) {
       is_active: true,
     })
     return uploaded.publicUrl
+  }
+
+  const exportNewsletterCsv = () => {
+    if (filteredNewsletterRows.length === 0) {
+      setStatus('No newsletter submissions match the current filters.')
+      return
+    }
+    const header = ['id', 'email', 'source', 'status', 'submitted_at']
+    const lines = filteredNewsletterRows.map((row) =>
+      [row.id, row.email, row.source ?? '', row.status ?? '', row.submitted_at].map(escapeCsvCell).join(','),
+    )
+    const csv = `${header.join(',')}\n${lines.join('\n')}\n`
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `newsletter-submissions-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    setStatus(`Exported ${filteredNewsletterRows.length} newsletter submission(s) to CSV.`)
   }
 
   const uploadRecordFieldFile = async (field: string, file: File) => {
@@ -962,7 +1016,84 @@ export function AdminDashboard(props: AdminProps) {
           </section>
         ) : null}
 
-        {props.page !== 'dashboard' && props.page !== 'branding' && props.page !== 'smtp' ? (
+        {props.page === 'newsletter' ? (
+          <section className="admin-newsletter">
+            <div className="admin-controls">
+              <div className="admin-controls-top">
+                <div className="admin-actions admin-actions-primary">
+                  <button className="admin-btn admin-btn-primary" onClick={exportNewsletterCsv}>
+                    Export CSV
+                  </button>
+                </div>
+                <div className="admin-search-wrap">
+                  <input
+                    type="search"
+                    className="admin-search-input"
+                    value={newsletterSearch}
+                    onChange={(event) => setNewsletterSearch(event.target.value)}
+                    placeholder="Search by email..."
+                    aria-label="Search newsletter submissions by email"
+                  />
+                  <input
+                    type="date"
+                    className="admin-search-input"
+                    value={newsletterStartDate}
+                    onChange={(event) => setNewsletterStartDate(event.target.value)}
+                    aria-label="Filter newsletter submissions from date"
+                  />
+                  <input
+                    type="date"
+                    className="admin-search-input"
+                    value={newsletterEndDate}
+                    onChange={(event) => setNewsletterEndDate(event.target.value)}
+                    aria-label="Filter newsletter submissions to date"
+                  />
+                  <button
+                    type="button"
+                    className="admin-btn"
+                    onClick={() => {
+                      setNewsletterSearch('')
+                      setNewsletterStartDate('')
+                      setNewsletterEndDate('')
+                    }}
+                  >
+                    Clear filters
+                  </button>
+                </div>
+              </div>
+              {status ? <p className="admin-status">{status}</p> : null}
+            </div>
+            <section className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Email</th>
+                    <th>Source</th>
+                    <th>Status</th>
+                    <th>Submitted at</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredNewsletterRows.map((row) => (
+                    <tr key={row.id}>
+                      <td>{row.email}</td>
+                      <td>{row.source ?? 'footer'}</td>
+                      <td>{row.status ?? 'new'}</td>
+                      <td>{new Date(row.submitted_at).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                  {filteredNewsletterRows.length === 0 ? (
+                    <tr>
+                      <td colSpan={4}>No newsletter submissions match the current filters.</td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </section>
+          </section>
+        ) : null}
+
+        {props.page !== 'dashboard' && props.page !== 'branding' && props.page !== 'smtp' && props.page !== 'newsletter' ? (
           <>
             <section className="admin-controls">
               <div className="admin-controls-top">
@@ -1960,11 +2091,6 @@ function buildDefaultJobsTemplateRows(): JobPost[] {
   ]
 }
 
-function escapeCsvCell(input: string) {
-  const value = input ?? ''
-  if (!/[",\n\r]/.test(value)) return value
-  return `"${value.replace(/"/g, '""')}"`
-}
 
 function parseJobsCsv(input: string): { rows: Array<Record<string, string>>; error?: string } {
   const rows = parseCsvRows(input)
@@ -2065,4 +2191,10 @@ function parseBooleanCell(value: string, fallback: boolean) {
   if (['true', '1', 'yes', 'y'].includes(normalized)) return true
   if (['false', '0', 'no', 'n'].includes(normalized)) return false
   return fallback
+}
+
+function escapeCsvCell(input: string) {
+  const value = input ?? ''
+  if (!/[",\n\r]/.test(value)) return value
+  return `"${value.replace(/"/g, '""')}"`
 }

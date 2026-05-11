@@ -363,12 +363,13 @@ function App() {
     typeof window !== 'undefined' ? window.innerWidth <= 680 : false,
   )
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null)
-  const [memberEmailCopied, setMemberEmailCopied] = useState(false)
-  const [memberEmailLabel, setMemberEmailLabel] = useState('')
   const [contactName, setContactName] = useState('')
   const [contactEmail, setContactEmail] = useState('')
   const [contactPhone, setContactPhone] = useState('')
   const [contactMessage, setContactMessage] = useState('')
+  const [newsletterEmail, setNewsletterEmail] = useState('')
+  const [isSubmittingNewsletter, setIsSubmittingNewsletter] = useState(false)
+  const [newsletterSubmissionStatus, setNewsletterSubmissionStatus] = useState('')
   const [isContactSheetOpen, setIsContactSheetOpen] = useState(false)
   const [isSubmittingContact, setIsSubmittingContact] = useState(false)
   const [contactSubmissionStatus, setContactSubmissionStatus] = useState('')
@@ -382,7 +383,6 @@ function App() {
   const [jobCvUploadProgress, setJobCvUploadProgress] = useState(0)
   const [isSubmittingJobApplication, setIsSubmittingJobApplication] = useState(false)
   const [jobApplicationStatus, setJobApplicationStatus] = useState('')
-  const [showCareersReturnHeader, setShowCareersReturnHeader] = useState(false)
   const [aboutTeamIndex, setAboutTeamIndex] = useState(0)
   const [teamVisibleCount, setTeamVisibleCount] = useState(8)
   const [teamMobileIndex, setTeamMobileIndex] = useState(0)
@@ -412,9 +412,10 @@ function App() {
   const industriesPageRef = useRef<HTMLElement | null>(null)
   const industriesAboutRef = useRef<HTMLElement | null>(null)
   const industriesListRef = useRef<HTMLElement | null>(null)
+  const aboutTeamTouchStartXRef = useRef(0)
+  const aboutTeamTouchStartYRef = useRef(0)
   const careerCvInputRef = useRef<HTMLInputElement | null>(null)
   const lastScrollYRef = useRef(0)
-  const careersLastScrollRef = useRef(0)
   const jobNoteEditor = useEditor({
     extensions: [StarterKit],
     content: '<p></p>',
@@ -538,6 +539,8 @@ function App() {
   )
 
   useEffect(() => {
+    const normalizedRoute = String(activeRoute || '').toLowerCase()
+    const isHomeView = normalizedRoute === '/' || normalizedRoute === '/index.html'
     const computeProgress = (element: HTMLElement | null) => {
       if (!element) return 0
       const rect = element.getBoundingClientRect()
@@ -565,6 +568,12 @@ function App() {
       const footerActive = nextFooterProgress > 0.02
 
       setShowReturnHeader((previous) => {
+        if (!isHomeView) {
+          if (currentScrollY <= 24) return false
+          if (scrollingUp) return true
+          if (scrollingDown) return false
+          return previous
+        }
         if (!heroFullyPassed || !returnHeaderEligible || footerActive) return false
         if (scrollingUp) return true
         if (scrollingDown) return false
@@ -587,7 +596,7 @@ function App() {
       window.removeEventListener('scroll', onScroll)
       window.removeEventListener('resize', onScroll)
     }
-  }, [isMobileMenuOpen])
+  }, [activeRoute, isMobileMenuOpen])
 
   useEffect(() => {
     const onLinkClick = (event: MouseEvent) => {
@@ -718,16 +727,6 @@ function App() {
   }, [activeRoute])
 
   useEffect(() => {
-    if (!selectedMember) {
-      setMemberEmailCopied(false)
-      setMemberEmailLabel('')
-      return
-    }
-    setMemberEmailCopied(false)
-    setMemberEmailLabel(selectedMember.email)
-  }, [selectedMember])
-
-  useEffect(() => {
     setJobApplicationStatus('')
     setJobApplicantName('')
     setJobApplicantEmail('')
@@ -741,7 +740,7 @@ function App() {
     if (typeof window === 'undefined') return 'dashboard'
     const part = window.location.pathname.replace(/^\/backend\/?/, '').split('/')[0]
     if (!part) return 'dashboard'
-    if (part === 'branding' || part === 'smtp' || part === 'team' || part === 'services' || part === 'insights' || part === 'media' || part === 'careers') return part
+    if (part === 'branding' || part === 'smtp' || part === 'newsletter' || part === 'team' || part === 'services' || part === 'insights' || part === 'media' || part === 'careers') return part
     return 'dashboard'
   })()
   const homepageTeam = siteContent.team.slice(0, 6)
@@ -824,29 +823,6 @@ function App() {
         onRefresh={loadContent}
       />
     )
-  }
-
-  const copyMemberEmail = async () => {
-    if (!selectedMember) return
-    const email = selectedMember.email
-    try {
-      await navigator.clipboard.writeText(email)
-      setMemberEmailCopied(true)
-      const copiedWord = 'Copied'
-      setMemberEmailLabel('')
-      copiedWord.split('').forEach((char, index) => {
-        window.setTimeout(() => {
-          setMemberEmailLabel((prev) => prev + char)
-        }, index * 70)
-      })
-      window.setTimeout(() => {
-        setMemberEmailCopied(false)
-        setMemberEmailLabel(email)
-      }, 1450)
-    } catch {
-      setMemberEmailCopied(false)
-      setMemberEmailLabel(email)
-    }
   }
 
   const navClass = (route: string) => (activeRoute === route ? 'active' : '')
@@ -1076,32 +1052,6 @@ function App() {
     </div>
   )
   useEffect(() => {
-    if (!isCareersRoute) {
-      setShowCareersReturnHeader(false)
-      return
-    }
-    const onCareersScroll = () => {
-      const currentScrollY = window.scrollY || 0
-      const scrollingUp = currentScrollY < careersLastScrollRef.current - 4
-      const scrollingDown = currentScrollY > careersLastScrollRef.current + 4
-      setShowCareersReturnHeader((previous) => {
-        if (currentScrollY <= 24) return false
-        if (scrollingUp) return true
-        if (scrollingDown) return false
-        return previous
-      })
-      careersLastScrollRef.current = currentScrollY
-    }
-    onCareersScroll()
-    window.addEventListener('scroll', onCareersScroll, { passive: true })
-    window.addEventListener('resize', onCareersScroll)
-    return () => {
-      window.removeEventListener('scroll', onCareersScroll)
-      window.removeEventListener('resize', onCareersScroll)
-    }
-  }, [isCareersRoute])
-
-  useEffect(() => {
     if (!isIndustriesRoute) return
     if (typeof window === 'undefined') return
     if (!industriesPageRef.current) return
@@ -1325,6 +1275,31 @@ function App() {
       setIsSubmittingContact(false)
     }
   }
+  const submitNewsletter = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const email = newsletterEmail.trim()
+    if (!email) {
+      setNewsletterSubmissionStatus('Please enter your email address.')
+      return
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setNewsletterSubmissionStatus('Please enter a valid email address.')
+      return
+    }
+    setIsSubmittingNewsletter(true)
+    setNewsletterSubmissionStatus('')
+    try {
+      await contentApi.submitNewsletterSubscription({ email })
+      setNewsletterEmail('')
+      setNewsletterSubmissionStatus('Subscribed successfully. You will receive updates soon.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to subscribe right now.'
+      setNewsletterSubmissionStatus(message)
+    } finally {
+      setIsSubmittingNewsletter(false)
+    }
+  }
   const activeServiceCard =
     serviceCards.find((service) => service.href.toLowerCase() === activePathname) ?? null
 
@@ -1503,10 +1478,19 @@ function App() {
             </p>
           </div>
           <div className="footer-reference-newsletter-row">
-            <form className="footer-reference-newsletter-card">
+            <form className="footer-reference-newsletter-card" onSubmit={submitNewsletter}>
               <span>Sign up for updates</span>
-              <input type="email" placeholder="name@email.com" />
-              <button type="button">Subscribe</button>
+              <input
+                type="email"
+                placeholder="name@email.com"
+                value={newsletterEmail}
+                onChange={(event) => setNewsletterEmail(event.target.value)}
+                required
+              />
+              <button type="submit" disabled={isSubmittingNewsletter}>
+                {isSubmittingNewsletter ? 'Subscribing...' : 'Subscribe'}
+              </button>
+              {newsletterSubmissionStatus ? <p className="footer-newsletter-status">{newsletterSubmissionStatus}</p> : null}
             </form>
             <a href="/contact-us" className="footer-reference-start-card">
               <span>Get started</span>
@@ -1553,6 +1537,39 @@ function App() {
       </div>
     </section>
   )
+  const scrollReturnHeader = (
+    <header className={`top-nav top-nav-global return-visible returning-header mobile-header-spaced ${showReturnHeader ? '' : 'scroll-hidden'}`}>
+      <div className="nav-bubble">
+        <a className="brand" href="/">
+          <img src="/SYNERGY logo.png" alt="Synergy Project Management" className="brand-wordmark-image" />
+        </a>
+        <nav className="menu">
+          <a href="/" className={navClass('#home')}>Home</a>
+          <a href="/services/project-management" className={serviceNavClass()}>Services</a>
+          <a href="/industries" className={industriesNavClass()}>Industries</a>
+          <a href="/about-us" className={aboutNavClass()}>About us</a>
+          <a href="/team" className={navClass('/team')}>Our Team</a>
+          <a href="/careers" className={careersNavClass()}>Careers</a>
+          <a href="/contact-us" className={contactNavClass()}>Contact us</a>
+        </nav>
+        <button
+          className="menu-toggle"
+          onClick={() => setIsMobileMenuOpen((open) => !open)}
+          aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={isMobileMenuOpen}
+          aria-controls="mobile-nav-drawer"
+        >
+          {isMobileMenuOpen ? 'Close' : 'Menu'}
+        </button>
+        <button className="call-btn" onClick={navigateToContact}>
+          Get in touch
+          <span className="call-btn-icon" aria-hidden="true">
+            <UpRightArrowIcon />
+          </span>
+        </button>
+      </div>
+    </header>
+  )
 
   if (isProjectsRoute) {
     const activeProjectHeroBackground = activeProjectHero?.hero_image_url?.trim()
@@ -1563,6 +1580,7 @@ function App() {
     const activeProjectDescriptionHtml = sanitizeProjectHtml(activeProjectHero?.project_description_html).trim()
     return (
       <>
+        {scrollReturnHeader}
         <main className="projects-page-shell">
           <section className="about-page-hero services-reimagined-hero projects-page-hero">
             <div className="about-page-hero-visual-frame" aria-hidden="true">
@@ -1723,6 +1741,7 @@ function App() {
   if (isAboutRoute) {
     return (
       <>
+        {scrollReturnHeader}
         <main className="about-page-shell">
           <section className="about-page-hero">
           <div className="about-page-hero-visual-frame" aria-hidden="true">
@@ -1908,7 +1927,7 @@ function App() {
                     <UpRightArrowIcon />
                   </span>
                 </button>
-                <div className="about-team-nav-arrows" aria-label="Team navigation">
+                {!isMobileViewport ? <div className="about-team-nav-arrows" aria-label="Team navigation">
                 <button
                   type="button"
                   className="about-team-nav-arrow"
@@ -1931,11 +1950,30 @@ function App() {
                     <path d="M9 6l6 6-6 6" />
                   </svg>
                 </button>
-                </div>
+                </div> : null}
               </div>
             </div>
           </header>
-          <div className="about-team-cards-viewport">
+          <div
+            className="about-team-cards-viewport"
+            onTouchStart={(event) => {
+              const touch = event.changedTouches[0]
+              aboutTeamTouchStartXRef.current = touch.clientX
+              aboutTeamTouchStartYRef.current = touch.clientY
+            }}
+            onTouchEnd={(event) => {
+              if (!isMobileViewport) return
+              const touch = event.changedTouches[0]
+              const deltaX = touch.clientX - aboutTeamTouchStartXRef.current
+              const deltaY = touch.clientY - aboutTeamTouchStartYRef.current
+              if (Math.abs(deltaX) < 40 || Math.abs(deltaX) <= Math.abs(deltaY)) return
+              if (deltaX < 0) {
+                setAboutTeamIndex((index) => Math.min(aboutTeamMaxSlideIndex, index + 1))
+              } else {
+                setAboutTeamIndex((index) => Math.max(0, index - 1))
+              }
+            }}
+          >
             <div
               className="about-team-cards-track"
               style={
@@ -1983,6 +2021,7 @@ function App() {
   if (isIndustriesRoute) {
     return (
       <>
+        {scrollReturnHeader}
         <main className="industries-page-shell" ref={industriesPageRef}>
           <section className="industries-hero">
             <header className="top-nav about-page-header">
@@ -2206,6 +2245,8 @@ function App() {
     )
 
     return (
+      <>
+      {scrollReturnHeader}
       <main className="contact-page-shell">
         <section className="contact-page-hero">
           <div className="contact-page-hero-visual-frame" aria-hidden="true">
@@ -2357,6 +2398,7 @@ function App() {
           </aside>
         </section>
       </main>
+      </>
     )
   }
 
@@ -2880,7 +2922,7 @@ function App() {
     const careersHeroJobs = visibleJobs.length > 0 ? visibleJobs : siteContent.jobs
     return (
       <main className="careers-page-shell">
-        <header className={`top-nav top-nav-global return-visible returning-header careers-return-header ${showCareersReturnHeader ? '' : 'scroll-hidden'}`}>
+        <header className={`top-nav top-nav-global return-visible returning-header careers-return-header mobile-header-spaced ${showReturnHeader ? '' : 'scroll-hidden'}`}>
           <div className="nav-bubble">
             <a className="brand" href="/">
               <img src="/SYNERGY logo.png" alt="Synergy Project Management" className="brand-wordmark-image" />
@@ -3250,7 +3292,7 @@ function App() {
   if (isTeamRoute) {
     return (
       <main className="careers-page-shell team-page-shell">
-        <header className={`top-nav top-nav-global return-visible returning-header careers-return-header ${showCareersReturnHeader ? '' : 'scroll-hidden'}`}>
+        <header className={`top-nav top-nav-global return-visible returning-header careers-return-header mobile-header-spaced ${showReturnHeader ? '' : 'scroll-hidden'}`}>
           <div className="nav-bubble">
             <a className="brand" href="/">
               <img src="/SYNERGY logo.png" alt="Synergy Project Management" className="brand-wordmark-image" />
@@ -3366,10 +3408,17 @@ function App() {
 
               {isMobileViewport ? (
                 <>
-                  <div className="team-mobile-carousel-viewport">
+                  <div
+                    className="team-mobile-carousel-viewport"
+                    onScroll={(event) => {
+                      const element = event.currentTarget
+                      const slideWidth = element.clientWidth || 1
+                      const nextIndex = Math.round(element.scrollLeft / slideWidth)
+                      setTeamMobileIndex(Math.max(0, Math.min(teamMembers.length - 1, nextIndex)))
+                    }}
+                  >
                     <div
                       className="team-mobile-carousel-track"
-                      style={{ transform: `translateX(-${teamMobileIndex * 100}%)` }}
                     >
                       {teamMembers.map((member) => (
                         <article key={`team-mobile-${member.id}`} className="home-services-item team-services-item">
@@ -3387,7 +3436,7 @@ function App() {
                           >
                             <h3>{member.name}</h3>
                           </div>
-                          <p>{member.bio || member.role}</p>
+                          <p>{member.role}</p>
                         </article>
                       ))}
                     </div>
@@ -3424,7 +3473,7 @@ function App() {
                         >
                           <h3>{member.name}</h3>
                         </div>
-                        <p>{member.bio || member.role}</p>
+                        <p>{member.role}</p>
                       </article>
                     ))}
                   </div>
@@ -3452,6 +3501,8 @@ function App() {
 
   if (isServicesRoute) {
     return (
+      <>
+      {scrollReturnHeader}
       <main className="services-page-shell services-reimagined-page">
         <section className="about-page-hero services-reimagined-hero">
           <div className="about-page-hero-visual-frame" aria-hidden="true">
@@ -3667,6 +3718,7 @@ function App() {
         </section>
         {sharedFooterSection}
       </main>
+      </>
     )
   }
 
@@ -3688,7 +3740,7 @@ function App() {
   return (
     <>
       {showReturnHeader ? (
-        <header className="top-nav top-nav-global return-visible returning-header">
+        <header className="top-nav top-nav-global return-visible returning-header mobile-header-spaced">
           <div className="nav-bubble">
             <a className="brand" href="/">
               <img src="/SYNERGY logo.png" alt="Synergy Project Management" className="brand-wordmark-image" />
@@ -4094,25 +4146,21 @@ function App() {
               <p className="member-bio">{selectedMember.bio}</p>
               <div className="member-links">
                 <div className="member-socials">
-                  <span>x</span>
-                  <span>in</span>
-                  <span>ig</span>
-                  <span>f</span>
+                  {socialMediaItems.map((item) => (
+                    <a
+                      key={`member-social-${item.id}`}
+                      href={item.href}
+                      className="member-social-link"
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={item.label}
+                      title={item.label}
+                    >
+                      <SocialIcon name={item.label} />
+                    </a>
+                  ))}
                 </div>
-                <button
-                  type="button"
-                  className={`member-email-row ${memberEmailCopied ? 'copied' : ''}`}
-                  onClick={copyMemberEmail}
-                  aria-label="Copy team member email"
-                  title={memberEmailCopied ? 'Copied' : 'Copy email'}
-                >
-                  <div>
-                    <strong>{memberEmailLabel}</strong>
-                  </div>
-                  <span className="copy-email-icon" aria-hidden="true">
-                    <span className="copy-icon" />
-                  </span>
-                </button>
+                <p className="member-email-row">For project inquiries and partnerships</p>
               </div>
             </div>
           </>

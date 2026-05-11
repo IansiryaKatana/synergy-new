@@ -26,9 +26,20 @@ type SubmissionRequest =
   | { type: 'job_application'; payload: JobApplicationPayload }
   | { type: 'contact_inquiry'; payload: ContactInquiryPayload }
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+const allowedOrigins = new Set([
+  'https://synergypm.ae',
+  'https://www.synergypm.ae',
+  'http://localhost:5173',
+])
+
+function getCorsHeaders(origin: string | null) {
+  const resolvedOrigin = origin && allowedOrigins.has(origin) ? origin : 'https://synergypm.ae'
+  return {
+    'Access-Control-Allow-Origin': resolvedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST,OPTIONS',
+    Vary: 'Origin',
+  }
 }
 
 function escapeHtml(value: string) {
@@ -120,6 +131,7 @@ function contactInternalTemplate(payload: ContactInquiryPayload) {
 }
 
 Deno.serve(async (request) => {
+  const corsHeaders = getCorsHeaders(request.headers.get('origin'))
   if (request.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }

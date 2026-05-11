@@ -87,6 +87,18 @@ export type ContactInquiryInput = {
   message: string
 }
 
+export type NewsletterSubscriptionInput = {
+  email: string
+}
+
+export type NewsletterSubmission = {
+  id: string
+  email: string
+  source?: string | null
+  status: string
+  submitted_at: string
+}
+
 export type SmtpSettings = {
   smtp_host: string
   smtp_port: number
@@ -451,6 +463,24 @@ export const contentApi = {
       type: 'contact_inquiry',
       payload,
     })
+  },
+  async submitNewsletterSubscription(payload: NewsletterSubscriptionInput) {
+    await supabaseRest.upsert('newsletter_submissions', {
+      email: payload.email,
+      source: 'footer',
+      status: 'new',
+      submitted_at: new Date().toISOString(),
+    })
+  },
+  async getNewsletterSubmissions() {
+    try {
+      const rows = await supabaseRest.select<NewsletterSubmission>('newsletter_submissions')
+      return rows
+        .slice()
+        .sort((a, b) => new Date(b.submitted_at).getTime() - new Date(a.submitted_at).getTime())
+    } catch {
+      return []
+    }
   },
   async getSmtpSettings(): Promise<SmtpSettings> {
     const response = await supabaseRest.callFunction<{ ok: boolean; data: SmtpSettings }>('smtp-secrets', {
