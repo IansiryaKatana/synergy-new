@@ -3,6 +3,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -107,23 +108,6 @@ function sanitizeRichHtml(input?: string | null) {
       if ((attrName === 'href' || attrName === 'src') && attrValue.startsWith('javascript:')) {
         el.removeAttribute(attr.name)
       }
-    }
-  })
-  return doc.body.innerHTML
-}
-
-function sanitizeProjectHtml(input?: string | null) {
-  const safe = sanitizeRichHtml(input)
-  if (!safe) return ''
-  if (typeof window === 'undefined') return safe.replace(/\sstyle="[^"]*"/gi, '')
-  const parser = new DOMParser()
-  const doc = parser.parseFromString(safe, 'text/html')
-  doc.querySelectorAll('*').forEach((el) => {
-    el.removeAttribute('style')
-    el.removeAttribute('class')
-    el.removeAttribute('id')
-    for (const attr of Array.from(el.attributes)) {
-      if (attr.name.toLowerCase().startsWith('data-')) el.removeAttribute(attr.name)
     }
   })
   return doc.body.innerHTML
@@ -258,45 +242,20 @@ function AboutTeamCardImage({ member }: { member: TeamMember }) {
   )
 }
 
-function formatProjectTitle(title: string) {
-  const firstLineRaw = title.includes('Hotel Apartment')
-    ? title.replace('Hotel Apartment', '').trim()
-    : title
-  const firstLine = firstLineRaw.replace(/\s\+\s/, ' + ')
-  const gPlusMatch = firstLine.match(/^G\s\+\s(\d+)$/i)
-  const firstLineNode = gPlusMatch ? (
-    <>
-      G<sup>+</sup>{gPlusMatch[1]}
-    </>
-  ) : (
-    firstLine
-  )
-
-  if (title.includes('Hotel Apartment')) {
-    return (
-      <>
-        {firstLineNode}
-        <br />
-        Hotel Apartment
-      </>
-    )
-  }
-  return firstLineNode
-}
-
-function resolveServiceHref(service: ServiceItem) {
+/** Stable fragment id for in-page anchors on the services page (e.g. `/services/#compliance`). */
+function resolveServiceSectionId(service: ServiceItem) {
   const id = service.id.toLowerCase()
   const title = service.title.toLowerCase()
   const tag = String(service.tag ?? '').toLowerCase()
 
-  if (id.includes('finance') || title.includes('finance') || tag.includes('finance')) return '/services/finance'
-  if (id.includes('compliance') || title.includes('compliance') || tag.includes('compliance')) return '/services/compliance'
+  if (id.includes('finance') || title.includes('finance') || tag.includes('finance')) return 'finance'
+  if (id.includes('compliance') || title.includes('compliance') || tag.includes('compliance')) return 'compliance'
   if (
     id.includes('project') ||
     title.includes('project management') ||
     tag.includes('project management')
   ) {
-    return '/services/project-management'
+    return 'project-management'
   }
   if (
     id === 'service-3' ||
@@ -305,9 +264,13 @@ function resolveServiceHref(service: ServiceItem) {
     title === 'hr department' ||
     tag.includes('human resources')
   ) {
-    return '/services/hr'
+    return 'hr'
   }
-  return '/services/project-management'
+  return 'project-management'
+}
+
+function resolveServiceHref(service: ServiceItem) {
+  return `/services/#${resolveServiceSectionId(service)}`
 }
 
 function normalizeServiceDetailSections(service: ServiceItem) {
@@ -333,10 +296,17 @@ function normalizeServiceDetailSections(service: ServiceItem) {
 
 function resolveCurrentRoute() {
   if (typeof window === 'undefined') return '/home'
-  const path = window.location.pathname.toLowerCase()
-  if (path !== '/') return path
-  const hash = window.location.hash.toLowerCase()
-  return hash && hash !== '#' ? hash : '#home'
+  const path = window.location.pathname.toLowerCase().split('?')[0]
+  const hashRaw = window.location.hash
+  const hashLower = hashRaw.toLowerCase()
+  if (path !== '/') {
+    const isServicesPath = path === '/services' || path.startsWith('/services/')
+    if (isServicesPath && hashLower && hashLower !== '#') {
+      return `${path}${hashLower}`
+    }
+    return path
+  }
+  return hashLower && hashLower !== '#' ? hashLower : '#home'
 }
 
 const ADMIN_USERNAME = 'Hello@iankatana.com'
@@ -368,7 +338,6 @@ function App() {
   const [sixthProgress, setSixthProgress] = useState(0)
   const [footerProgress, setFooterProgress] = useState(0)
   const [showReturnHeader, setShowReturnHeader] = useState(false)
-  const [insightsIndex, setInsightsIndex] = useState(0)
   const [isMobileViewport, setIsMobileViewport] = useState(
     typeof window !== 'undefined' ? window.innerWidth <= 680 : false,
   )
@@ -471,11 +440,23 @@ function App() {
         setIsMobileMenuOpen(false)
 
         if (nextUrl.hash) {
-          const hashTarget = document.querySelector(nextUrl.hash)
-          if (hashTarget instanceof HTMLElement) {
-            hashTarget.scrollIntoView({ block: 'start' })
-            return
+          const scrollToHash = () => {
+            const hashTarget = document.querySelector(nextUrl.hash)
+            if (hashTarget instanceof HTMLElement) {
+              hashTarget.scrollIntoView({ block: 'start', behavior: 'auto' })
+              return true
+            }
+            return false
           }
+          if (scrollToHash()) return
+          requestAnimationFrame(() => {
+            if (scrollToHash()) return
+            requestAnimationFrame(() => {
+              if (scrollToHash()) return
+              window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+            })
+          })
+          return
         }
         window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
       }
@@ -527,16 +508,8 @@ function App() {
   const aboutTeamActiveVisualDot = aboutTeamMaxSlideIndex === 0
     ? 0
     : Math.round((aboutTeamIndex / aboutTeamMaxSlideIndex) * (aboutTeamVisualDotCount - 1))
-  const projectHeroItems = useMemo(
-    () =>
-      siteContent.insights.length > 0
-        ? siteContent.insights
-        : contentApi.fallback.insights,
-    [siteContent.insights],
-  )
-  const activeProjectHero = projectHeroItems[Math.min(insightsIndex, Math.max(0, projectHeroItems.length - 1))] ?? null
   const homepageFeaturedServices = useMemo(() => serviceCards.slice(0, 3), [serviceCards])
-  const homepageServicesHref = serviceCards[0]?.href ?? '/services/project-management'
+  const homepageServicesHref = serviceCards[0]?.href ?? '/services/#project-management'
   const servicesPageCards = useMemo(
     () =>
       serviceCards.length > 0
@@ -632,13 +605,6 @@ function App() {
   }, [navigateWithTransition])
 
   useEffect(() => {
-    setInsightsIndex((previous) => {
-      if (projectHeroItems.length === 0) return 0
-      return Math.min(previous, projectHeroItems.length - 1)
-    })
-  }, [projectHeroItems.length])
-
-  useEffect(() => {
     setAboutTeamIndex((previous) => {
       if (aboutTeamMembers.length === 0) return 0
       return Math.min(previous, aboutTeamMaxSlideIndex)
@@ -716,6 +682,20 @@ function App() {
   useEffect(() => {
     const syncRoute = () => {
       setActiveRoute(resolveCurrentRoute())
+      const path = window.location.pathname.toLowerCase()
+      const hash = window.location.hash
+      const isServicesPath = path === '/services' || path.startsWith('/services/')
+      if (isServicesPath && hash && hash !== '#') {
+        requestAnimationFrame(() => {
+          const el = document.querySelector(hash)
+          if (el instanceof HTMLElement) {
+            el.scrollIntoView({ block: 'start', behavior: 'auto' })
+            return
+          }
+          window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+        })
+        return
+      }
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
     }
     syncRoute()
@@ -840,8 +820,15 @@ function App() {
   const navClass = (route: string) => (activeRoute === route ? 'active' : '')
   const normalizedActiveRoute = activeRoute.toLowerCase()
   const activePathname = normalizedActiveRoute.startsWith('/') ? normalizedActiveRoute : '/'
+  const activePathWithoutHash = (() => {
+    if (normalizedActiveRoute.startsWith('#')) return '/'
+    const hashIdx = normalizedActiveRoute.indexOf('#')
+    if (hashIdx === -1) return activePathname
+    const base = normalizedActiveRoute.slice(0, hashIdx)
+    return base.startsWith('/') ? base : '/'
+  })()
   const isHomeRoute = activePathname === '/' || activePathname === '/index.html'
-  const isServicesRoute = activePathname.startsWith('/services')
+  const isServicesRoute = activePathWithoutHash.startsWith('/services')
   const isProjectsRoute = activePathname === '/projects' || activePathname.startsWith('/projects/')
   const isAboutRoute = activePathname === '/about-us' || activePathname.startsWith('/about-us/')
   const isIndustriesRoute = activePathname === '/industries' || activePathname.startsWith('/industries/')
@@ -860,19 +847,31 @@ function App() {
   const industriesNavClass = () => (isIndustriesRoute ? 'active' : '')
   const careersNavClass = () => (isCareersRoute ? 'active' : '')
   const contactNavClass = () => (isContactRoute ? 'active' : '')
-  const [careersDepartment, setCareersDepartment] = useState('View all')
+  useLayoutEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!isServicesRoute) return
+    const hash = window.location.hash
+    if (!hash || hash === '#') return
+    requestAnimationFrame(() => {
+      const el = document.querySelector(hash)
+      if (el instanceof HTMLElement) {
+        el.scrollIntoView({ block: 'start', behavior: 'auto' })
+      }
+    })
+  }, [isServicesRoute, hasLoadedContent, activeRoute])
+  const [careersDepartment, setCareersDepartment] = useState('View All')
   const visibleJobs = useMemo(() => {
     const jobs = siteContent.jobs
-    if (careersDepartment === 'View all') return jobs
+    if (careersDepartment === 'View All') return jobs
     return jobs.filter((job) => job.department === careersDepartment)
   }, [careersDepartment, siteContent.jobs])
   const careerDepartments = useMemo(() => {
     const uniqueDepartments = Array.from(new Set(siteContent.jobs.map((job) => job.department).filter(Boolean)))
-    return ['View all', ...uniqueDepartments]
+    return ['View All', ...uniqueDepartments]
   }, [siteContent.jobs])
   const selectedCareerId = useMemo(() => {
     if (!isCareersRoute) return ''
-    const pathWithoutQuery = activePathname.split('?')[0]
+    const pathWithoutQuery = activePathWithoutHash.split('?')[0]
     const normalizedCareerPath = pathWithoutQuery.replace(/^\/careers?\/?/i, '')
     const [firstSegment = ''] = normalizedCareerPath.split('/').filter(Boolean)
     return firstSegment
@@ -1312,8 +1311,17 @@ function App() {
       setIsSubmittingNewsletter(false)
     }
   }
-  const activeServiceCard =
-    serviceCards.find((service) => service.href.toLowerCase() === activePathname) ?? null
+  const activeServiceCard = useMemo(() => {
+    const r = String(activeRoute || '').toLowerCase()
+    const byHref = serviceCards.find((service) => service.href.toLowerCase() === r)
+    if (byHref) return byHref
+    const hashIdx = r.indexOf('#')
+    if (hashIdx !== -1 && r.slice(0, hashIdx).replace(/\/+$/, '').startsWith('/services')) {
+      const hash = r.slice(hashIdx + 1)
+      return serviceCards.find((service) => resolveServiceSectionId(service) === hash) ?? null
+    }
+    return null
+  }, [activeRoute, serviceCards])
 
   useEffect(() => {
     if (typeof document === 'undefined' || typeof window === 'undefined') return
@@ -1336,7 +1344,7 @@ function App() {
     const breadcrumbs: BreadcrumbCrumb[] = [{ name: 'Home', url: `${productionOrigin}/` }]
 
     if (isServicesRoute) {
-      breadcrumbs.push({ name: 'Services', url: `${productionOrigin}/services/project-management` })
+      breadcrumbs.push({ name: 'Services', url: `${productionOrigin}/services/` })
       if (activeServiceCard) {
         pageTitle = `${activeServiceCard.title} Services in Dubai | Synergy Project Management`
         pageDescription = clampMetaDescription(
@@ -1596,18 +1604,22 @@ function App() {
   ])
 
   useEffect(() => {
-    if (activePathname === '/services/project-management' || activePathname === '/services/general') {
-      navigateWithTransition('/services/', { replace: true })
+    const path = activePathWithoutHash.toLowerCase().replace(/\/+$/, '') || '/'
+    const legacySlugs = ['finance', 'compliance', 'hr', 'project-management', 'general'] as const
+    for (const slug of legacySlugs) {
+      if (path === `/services/${slug}`) {
+        if (slug === 'general') {
+          navigateWithTransition('/services/', { replace: true })
+        } else {
+          navigateWithTransition(`/services/#${slug}`, { replace: true })
+        }
+        return
+      }
     }
-  }, [activePathname, navigateWithTransition])
+  }, [activePathWithoutHash, navigateWithTransition])
 
   if (isServicesRoute && !activeServiceCard && !hasLoadedContent) {
     return <main className="services-page-shell" />
-  }
-
-  // Projects page intentionally retired; route now resolves to not found.
-  if (isProjectsRoute) {
-    return <NotFoundPage onGoHome={() => navigateWithTransition('/', { replace: true })} />
   }
 
   const sharedFooterSection = (
@@ -1669,10 +1681,10 @@ function App() {
             </div>
             <div className="footer-reference-col">
               <p>Services</p>
-              <a href="/services/project-management" title="Project Management services in Dubai">Project Management</a>
-              <a href="/services/finance" title="Finance services in Dubai and UAE">Finance Department</a>
-              <a href="/services/compliance" title="Compliance services across UAE and GCC">Compliance Department</a>
-              <a href="/services/hr" title="HR services in UAE and UK">Human Resources</a>
+              <a href="/services/#project-management" title="Project Management services in Dubai">Project Management</a>
+              <a href="/services/#finance" title="Finance services in Dubai and UAE">Finance Department</a>
+              <a href="/services/#compliance" title="Compliance services across UAE and GCC">Compliance Department</a>
+              <a href="/services/#hr" title="HR services in UAE and UK">Human Resources</a>
             </div>
             <div className="footer-reference-col">
               <p>Legal</p>
@@ -1700,12 +1712,12 @@ function App() {
         </a>
         <nav className="menu">
           <a href="/" className={navClass('#home')}>Home</a>
-          <a href="/services/project-management" className={serviceNavClass()}>Services</a>
+          <a href="/services/" className={serviceNavClass()}>Services</a>
           <a href="/industries" className={industriesNavClass()}>Industries</a>
-          <a href="/about-us" className={aboutNavClass()}>About us</a>
+          <a href="/about-us" className={aboutNavClass()}>About Us</a>
           <a href="/team" className={navClass('/team')}>Our Team</a>
           <a href="/careers" className={careersNavClass()}>Careers</a>
-          <a href="/contact-us" className={contactNavClass()}>Contact us</a>
+          <a href="/contact-us" className={contactNavClass()}>Contact Us</a>
         </nav>
         <button
           className="menu-toggle"
@@ -1727,178 +1739,9 @@ function App() {
   )
 
   if (isProjectsRoute) {
-    const activeProjectHeroBackground = activeProjectHero?.hero_image_url?.trim()
-      || activeProjectHero?.image_url?.trim()
-      || fallbackServiceCardImage
-    const activeProjectStatus = activeProjectHero?.chip?.replace(/^Status:\s*/i, '').trim() ?? ''
-    const activeProjectLocation = activeProjectHero?.date_label?.replace(/^Location:\s*/i, '').trim() ?? ''
-    const activeProjectDescriptionHtml = sanitizeProjectHtml(activeProjectHero?.project_description_html).trim()
     return (
       <>
-        {scrollReturnHeader}
-        <main className="projects-page-shell">
-          <section className="about-page-hero services-reimagined-hero projects-page-hero">
-            <div className="about-page-hero-visual-frame" aria-hidden="true">
-              <div
-                className="about-page-hero-media projects-page-hero-media"
-                style={{
-                  backgroundImage: `url("${activeProjectHeroBackground}")`,
-                }}
-              />
-            </div>
-            <header className="top-nav about-page-header">
-              <div className="nav-bubble">
-                <a className="brand" href="/">
-                  <img
-                    src="/SYNERGY logo.png"
-                    alt={`${siteContent.branding.company_name} logo`}
-                    className="brand-wordmark-image about-brand-desktop"
-                    decoding="async"
-                  />
-                  <img
-                    src="/SYNERGY logo.png"
-                    alt={`${siteContent.branding.company_name} logo`}
-                    className="brand-wordmark-image about-brand-mobile"
-                    decoding="async"
-                  />
-                </a>
-                <nav className="menu">
-                  <a href="/" className={navClass('#home')}>Home</a>
-                  <a href="/services/project-management" className={serviceNavClass()}>Services</a>
-                  <a href="/industries" className={industriesNavClass()}>Industries</a>
-                  <a href="/about-us" className={aboutNavClass()}>About us</a>
-                  <a href="/team" className={navClass('/team')}>Our Team</a>
-                  <a href="/careers" className={careersNavClass()}>Careers</a>
-                  <a href="/contact-us" className={contactNavClass()}>Contact us</a>
-                </nav>
-                <button
-                  className="menu-toggle"
-                  onClick={() => setIsMobileMenuOpen((open) => !open)}
-                  aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
-                  aria-expanded={isMobileMenuOpen}
-                  aria-controls="mobile-nav-drawer"
-                >
-                  {isMobileMenuOpen ? 'Close' : 'Menu'}
-                </button>
-              </div>
-              <button className="call-btn" onClick={navigateToContact}>
-                Get in touch
-                <span className="call-btn-icon" aria-hidden="true">
-                  <UpRightArrowIcon />
-                </span>
-              </button>
-            </header>
-            <div
-              className={`mobile-menu-overlay ${isMobileMenuOpen ? 'open' : ''}`}
-              onClick={() => setIsMobileMenuOpen(false)}
-              aria-hidden={!isMobileMenuOpen}
-            />
-            <aside
-              id="mobile-nav-drawer"
-              className={`mobile-menu-drawer ${isMobileMenuOpen ? 'open' : ''}`}
-              aria-hidden={!isMobileMenuOpen}
-            >
-              <div className="mobile-menu-header">
-                <p className="mobile-menu-title">Menu</p>
-                <button
-                  type="button"
-                  className="mobile-menu-close"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  aria-label="Close menu"
-                >
-                  ×
-                </button>
-              </div>
-              <nav className="mobile-menu-links">
-                <a href="/" className={navClass('#home')} onClick={() => setIsMobileMenuOpen(false)}>
-                  Home
-                </a>
-                <a
-                  href="/services/project-management"
-                  className={serviceNavClass()}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Services
-                </a>
-                <a href="/industries" className={industriesNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-                  Industries
-                </a>
-                <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-                  About us
-                </a>
-                <a href="/team" className={navClass('/team')} onClick={() => setIsMobileMenuOpen(false)}>Our Team</a>
-                <a href="/careers" className={careersNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-                  Careers
-                </a>
-                <a href="/contact-us" className={contactNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-                  Contact us
-                </a>
-              </nav>
-              {mobileConnectSection}
-              <button
-                className="mobile-menu-call"
-                onClick={() => {
-                  navigateToContact()
-                }}
-              >
-                Get in touch
-              </button>
-            </aside>
-            <div className="about-page-hero-content projects-page-hero-content">
-              <div className="projects-page-hero-copy">
-                <p className="eyebrow">Project info</p>
-                <h1>{activeProjectHero ? formatProjectTitle(activeProjectHero.title) : 'Experience That Builds Outcomes.'}</h1>
-                <p className="subtitle">{activeProjectStatus || 'Status details will appear here.'}</p>
-                <p className="subtitle projects-page-hero-location">
-                  {activeProjectLocation || 'Location details will appear here.'}
-                </p>
-              </div>
-              <div className="projects-page-hero-thumbnails-wrap">
-                <div className="projects-page-hero-thumbnails" role="tablist" aria-label="Project hero selector">
-                  {projectHeroItems.map((project, index) => {
-                    const thumbSrc = project.image_url?.trim() || project.hero_image_url?.trim() || ''
-                    const isActive = index === Math.min(insightsIndex, Math.max(0, projectHeroItems.length - 1))
-                    const projectTitleText = String(project.title ?? 'Project')
-                    return (
-                      <button
-                        type="button"
-                        key={`project-hero-thumb-${project.id}`}
-                        className={`projects-page-hero-thumbnail ${isActive ? 'active' : ''}`}
-                        onClick={() => setInsightsIndex(index)}
-                        role="tab"
-                        aria-selected={isActive}
-                        aria-label={`Show ${projectTitleText}`}
-                      >
-                        {thumbSrc ? (
-                          <img
-                            src={thumbSrc}
-                            alt={`${projectTitleText} - Synergy Project Management`}
-                            loading="lazy"
-                            decoding="async"
-                            width="320"
-                            height="180"
-                          />
-                        ) : null}
-                        <span>{formatProjectTitle(project.title)}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-          </section>
-          {activeProjectDescriptionHtml ? (
-            <section className="services-problem-section projects-problem-section" aria-label="Project description">
-              <div className="services-problem-inner">
-                <p className="services-problem-kicker">Project overview</p>
-                <div
-                  className="projects-problem-rich"
-                  dangerouslySetInnerHTML={{ __html: activeProjectDescriptionHtml }}
-                />
-              </div>
-            </section>
-          ) : null}
-        </main>
+        <NotFoundPage onGoHome={() => navigateWithTransition('/', { replace: true })} />
         {sharedFooterSection}
       </>
     )
@@ -1931,12 +1774,12 @@ function App() {
               </a>
               <nav className="menu">
                 <a href="/" className={navClass('#home')}>Home</a>
-                <a href="/services/project-management" className={serviceNavClass()}>Services</a>
+                <a href="/services/" className={serviceNavClass()}>Services</a>
                 <a href="/industries" className={industriesNavClass()}>Industries</a>
-                <a href="/about-us" className={aboutNavClass()}>About us</a>
+                <a href="/about-us" className={aboutNavClass()}>About Us</a>
                 <a href="/team" className={navClass('/team')}>Our Team</a>
                 <a href="/careers" className={careersNavClass()}>Careers</a>
-                <a href="/contact-us" className={contactNavClass()}>Contact us</a>
+                <a href="/contact-us" className={contactNavClass()}>Contact Us</a>
               </nav>
               <button
                 className="menu-toggle"
@@ -1981,7 +1824,7 @@ function App() {
                 Home
               </a>
               <a
-                href="/services/project-management"
+                href="/services/"
                 className={serviceNavClass()}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
@@ -1991,7 +1834,7 @@ function App() {
                 Industries
               </a>
               <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-                About us
+                About Us
               </a>
               <a href="/team" className={navClass('/team')} onClick={() => setIsMobileMenuOpen(false)}>
                 Our Team
@@ -2000,7 +1843,7 @@ function App() {
                 Careers
               </a>
               <a href="/contact-us" className={contactNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-                Contact us
+                Contact Us
               </a>
             </nav>
             {mobileConnectSection}
@@ -2034,7 +1877,7 @@ function App() {
                 className="home-services-view-all primary"
                 onClick={() => navigateWithTransition(homepageServicesHref)}
               >
-                View all services
+                View All Services
                 <span aria-hidden="true">
                   <UpRightArrowIcon />
                 </span>
@@ -2078,11 +1921,11 @@ function App() {
             })}
           </div>
         </section>
-        <section className="about-team-section" aria-label="Our team">
+        <section className="about-team-section" aria-label="Our Team">
           <header className="about-team-header">
             <div className="about-team-heading-row">
               <div className="about-team-heading-left">
-                <h2>Our team</h2>
+                <h2>Our Team</h2>
               </div>
               <div className="about-team-heading-actions">
                 {!isMobileViewport ? <div className="about-team-nav-arrows" aria-label="Team navigation">
@@ -2157,7 +2000,7 @@ function App() {
               ))}
             </div>
           </div>
-          <div className="about-team-dots" role="tablist" aria-label="Our team navigation">
+          <div className="about-team-dots" role="tablist" aria-label="Our Team navigation">
             {aboutTeamDotTargets.map((targetIndex, index) => (
               <button
                 key={`about-team-dot-${index}`}
@@ -2175,7 +2018,7 @@ function App() {
               className="home-services-view-all primary"
               onClick={() => navigateWithTransition('/team')}
             >
-              View all staff
+              View Our Team
               <span aria-hidden="true">
                 <UpRightArrowIcon />
               </span>
@@ -2186,10 +2029,10 @@ function App() {
           <nav className="related-links" aria-label="Related Synergy pages">
             <h2>Where to go next</h2>
             <ul>
-              <li><a href="/services/project-management">Project Management services</a> — execution governance and delivery.</li>
-              <li><a href="/services/finance">Finance Department services</a> — IFRS-aligned controls, reporting, and audits.</li>
-              <li><a href="/services/compliance">Compliance Department services</a> — UAE & GCC regulatory pathways.</li>
-              <li><a href="/services/hr">Human Resources services</a> — workforce planning across UAE & UK.</li>
+              <li><a href="/services/#project-management">Project Management services</a> — execution governance and delivery.</li>
+              <li><a href="/services/#finance">Finance Department services</a> — IFRS-aligned controls, reporting, and audits.</li>
+              <li><a href="/services/#compliance">Compliance Department services</a> — UAE & GCC regulatory pathways.</li>
+              <li><a href="/services/#hr">Human Resources services</a> — workforce planning across UAE & UK.</li>
               <li><a href="/industries">Industries we operate in</a> — distribution, retail, AI systems, and more.</li>
               <li><a href="/team">Meet the Synergy team</a> — the people behind the momentum.</li>
               <li><a href="/careers">Careers at Synergy</a> — join us across departments.</li>
@@ -2226,12 +2069,12 @@ function App() {
                 </a>
                 <nav className="menu">
                   <a href="/" className={navClass('#home')}>Home</a>
-                  <a href="/services/project-management" className={serviceNavClass()}>Services</a>
+                  <a href="/services/" className={serviceNavClass()}>Services</a>
                   <a href="/industries" className={industriesNavClass()}>Industries</a>
-                  <a href="/about-us" className={aboutNavClass()}>About us</a>
+                  <a href="/about-us" className={aboutNavClass()}>About Us</a>
                   <a href="/team" className={navClass('/team')}>Our Team</a>
                   <a href="/careers" className={careersNavClass()}>Careers</a>
-                  <a href="/contact-us" className={contactNavClass()}>Contact us</a>
+                  <a href="/contact-us" className={contactNavClass()}>Contact Us</a>
                 </nav>
                 <button
                   className="menu-toggle"
@@ -2276,7 +2119,7 @@ function App() {
                   Home
                 </a>
                 <a
-                  href="/services/project-management"
+                  href="/services/"
                   className={serviceNavClass()}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
@@ -2286,14 +2129,14 @@ function App() {
                   Industries
                 </a>
                 <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-                  About us
+                  About Us
                 </a>
                 <a href="/team" className={navClass('/team')} onClick={() => setIsMobileMenuOpen(false)}>Our Team</a>
                 <a href="/careers" className={careersNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
                   Careers
                 </a>
                 <a href="/contact-us" className={contactNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-                  Contact us
+                  Contact Us
                 </a>
               </nav>
               {mobileConnectSection}
@@ -2379,18 +2222,18 @@ function App() {
             <h2>Continue exploring Synergy Project Management</h2>
             <ul>
               <li>
-                <a href="/services/project-management">
+                <a href="/services/#project-management">
                   Discover our Project Management services in Dubai
                 </a>
               </li>
               <li>
-                <a href="/services/finance">Finance Department services across UAE & UK</a>
+                <a href="/services/#finance">Finance Department services across UAE & UK</a>
               </li>
               <li>
-                <a href="/services/compliance">Compliance Department services in the UAE & GCC</a>
+                <a href="/services/#compliance">Compliance Department services in the UAE & GCC</a>
               </li>
               <li>
-                <a href="/services/hr">Human Resources services in UAE & UK</a>
+                <a href="/services/#hr">Human Resources services in UAE & UK</a>
               </li>
               <li>
                 <a href="/about-us">About Synergy Project Management</a>
@@ -2492,12 +2335,12 @@ function App() {
               </a>
               <nav className="menu">
                 <a href="/" className={navClass('#home')}>Home</a>
-                <a href="/services/project-management" className={serviceNavClass()}>Services</a>
+                <a href="/services/" className={serviceNavClass()}>Services</a>
                 <a href="/industries" className={industriesNavClass()}>Industries</a>
-                <a href="/about-us" className={aboutNavClass()}>About us</a>
+                <a href="/about-us" className={aboutNavClass()}>About Us</a>
                 <a href="/team" className={navClass('/team')}>Our Team</a>
                 <a href="/careers" className={careersNavClass()}>Careers</a>
-                <a href="/contact-us" className={contactNavClass()}>Contact us</a>
+                <a href="/contact-us" className={contactNavClass()}>Contact Us</a>
               </nav>
               <button
                 className="menu-toggle"
@@ -2542,7 +2385,7 @@ function App() {
                 Home
               </a>
               <a
-                href="/services/project-management"
+                href="/services/"
                 className={serviceNavClass()}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
@@ -2552,7 +2395,7 @@ function App() {
                 Industries
               </a>
               <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-                About us
+                About Us
               </a>
               <a href="/team" className={navClass('/team')} onClick={() => setIsMobileMenuOpen(false)}>
                 Our Team
@@ -2561,7 +2404,7 @@ function App() {
                 Careers
               </a>
               <a href="/contact-us" className={contactNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-                Contact us
+                Contact Us
               </a>
             </nav>
             {mobileConnectSection}
@@ -2622,6 +2465,7 @@ function App() {
           </aside>
         </section>
       </main>
+      {sharedFooterSection}
       </>
     )
   }
@@ -2637,12 +2481,12 @@ function App() {
             </a>
             <nav className="menu">
               <a href="/" className={navClass('#home')}>Home</a>
-              <a href="/services/project-management" className={serviceNavClass()}>Services</a>
+              <a href="/services/" className={serviceNavClass()}>Services</a>
               <a href="/industries" className={industriesNavClass()}>Industries</a>
-              <a href="/about-us" className={aboutNavClass()}>About us</a>
+              <a href="/about-us" className={aboutNavClass()}>About Us</a>
               <a href="/team" className={navClass('/team')}>Our Team</a>
               <a href="/careers" className={careersNavClass()}>Careers</a>
-              <a href="/contact-us" className={contactNavClass()}>Contact us</a>
+              <a href="/contact-us" className={contactNavClass()}>Contact Us</a>
             </nav>
             <button
               className="menu-toggle"
@@ -2687,21 +2531,21 @@ function App() {
               Home
             </a>
             <a
-              href="/services/project-management"
+              href="/services/"
               className={serviceNavClass()}
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Services
             </a>
             <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-              About us
+              About Us
             </a>
             <a href="/team" className={navClass('/team')} onClick={() => setIsMobileMenuOpen(false)}>Our Team</a>
             <a href="/careers" className={careersNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
               Careers
             </a>
             <a href="/contact-us" className={contactNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-              Contact us
+              Contact Us
             </a>
           </nav>
           {mobileConnectSection}
@@ -3145,6 +2989,7 @@ function App() {
   if (isCareersRoute) {
     const careersHeroJobs = visibleJobs.length > 0 ? visibleJobs : siteContent.jobs
     return (
+      <>
       <main className="careers-page-shell">
         <header className={`top-nav top-nav-global return-visible returning-header careers-return-header mobile-header-spaced ${showReturnHeader ? '' : 'scroll-hidden'}`}>
           <div className="nav-bubble">
@@ -3153,12 +2998,12 @@ function App() {
             </a>
             <nav className="menu">
               <a href="/" className={navClass('#home')}>Home</a>
-              <a href="/services/project-management" className={serviceNavClass()}>Services</a>
+              <a href="/services/" className={serviceNavClass()}>Services</a>
               <a href="/industries" className={industriesNavClass()}>Industries</a>
-              <a href="/about-us" className={aboutNavClass()}>About us</a>
+              <a href="/about-us" className={aboutNavClass()}>About Us</a>
               <a href="/team" className={navClass('/team')}>Our Team</a>
               <a href="/careers" className={careersNavClass()}>Careers</a>
-              <a href="/contact-us" className={contactNavClass()}>Contact us</a>
+              <a href="/contact-us" className={contactNavClass()}>Contact Us</a>
             </nav>
             <button
               className="menu-toggle"
@@ -3195,12 +3040,12 @@ function App() {
             </a>
             <nav className="menu">
               <a href="/" className={navClass('#home')}>Home</a>
-              <a href="/services/project-management" className={serviceNavClass()}>Services</a>
+              <a href="/services/" className={serviceNavClass()}>Services</a>
               <a href="/industries" className={industriesNavClass()}>Industries</a>
-              <a href="/about-us" className={aboutNavClass()}>About us</a>
+              <a href="/about-us" className={aboutNavClass()}>About Us</a>
               <a href="/team" className={navClass('/team')}>Our Team</a>
               <a href="/careers" className={careersNavClass()}>Careers</a>
-              <a href="/contact-us" className={contactNavClass()}>Contact us</a>
+              <a href="/contact-us" className={contactNavClass()}>Contact Us</a>
             </nav>
             <button
               className="menu-toggle"
@@ -3243,12 +3088,12 @@ function App() {
             </div>
             <nav className="mobile-menu-links">
               <a href="/" className={navClass('#home')} onClick={() => setIsMobileMenuOpen(false)}>Home</a>
-              <a href="/services/project-management" className={serviceNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Services</a>
+              <a href="/services/" className={serviceNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Services</a>
               <a href="/industries" className={industriesNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Industries</a>
-              <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>About us</a>
+              <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>About Us</a>
               <a href="/team" className={navClass('/team')} onClick={() => setIsMobileMenuOpen(false)}>Our Team</a>
               <a href="/careers" className={careersNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Careers</a>
-              <a href="/contact-us" className={contactNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Contact us</a>
+              <a href="/contact-us" className={contactNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Contact Us</a>
             </nav>
             {mobileConnectSection}
             <button className="mobile-menu-call" onClick={navigateToContact}>Get in touch</button>
@@ -3512,11 +3357,14 @@ function App() {
           </div>
         </section>
       </main>
+      {sharedFooterSection}
+      </>
     )
   }
 
   if (isTeamRoute) {
     return (
+      <>
       <main className="careers-page-shell team-page-shell">
         <header className={`top-nav top-nav-global return-visible returning-header careers-return-header mobile-header-spaced ${showReturnHeader ? '' : 'scroll-hidden'}`}>
           <div className="nav-bubble">
@@ -3525,12 +3373,12 @@ function App() {
             </a>
             <nav className="menu">
               <a href="/" className={navClass('#home')}>Home</a>
-              <a href="/services/project-management" className={serviceNavClass()}>Services</a>
+              <a href="/services/" className={serviceNavClass()}>Services</a>
               <a href="/industries" className={industriesNavClass()}>Industries</a>
-              <a href="/about-us" className={aboutNavClass()}>About us</a>
+              <a href="/about-us" className={aboutNavClass()}>About Us</a>
               <a href="/team" className={navClass('/team')}>Our Team</a>
               <a href="/careers" className={careersNavClass()}>Careers</a>
-              <a href="/contact-us" className={contactNavClass()}>Contact us</a>
+              <a href="/contact-us" className={contactNavClass()}>Contact Us</a>
             </nav>
             <button
               className="menu-toggle"
@@ -3567,12 +3415,12 @@ function App() {
             </a>
             <nav className="menu">
               <a href="/" className={navClass('#home')}>Home</a>
-              <a href="/services/project-management" className={serviceNavClass()}>Services</a>
+              <a href="/services/" className={serviceNavClass()}>Services</a>
               <a href="/industries" className={industriesNavClass()}>Industries</a>
-              <a href="/about-us" className={aboutNavClass()}>About us</a>
+              <a href="/about-us" className={aboutNavClass()}>About Us</a>
               <a href="/team" className={navClass('/team')}>Our Team</a>
               <a href="/careers" className={careersNavClass()}>Careers</a>
-              <a href="/contact-us" className={contactNavClass()}>Contact us</a>
+              <a href="/contact-us" className={contactNavClass()}>Contact Us</a>
             </nav>
             <button
               className="menu-toggle"
@@ -3615,12 +3463,12 @@ function App() {
             </div>
             <nav className="mobile-menu-links">
               <a href="/" className={navClass('#home')} onClick={() => setIsMobileMenuOpen(false)}>Home</a>
-              <a href="/services/project-management" className={serviceNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Services</a>
+              <a href="/services/" className={serviceNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Services</a>
               <a href="/industries" className={industriesNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Industries</a>
-              <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>About us</a>
+              <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>About Us</a>
               <a href="/team" className={navClass('/team')} onClick={() => setIsMobileMenuOpen(false)}>Our Team</a>
               <a href="/careers" className={careersNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Careers</a>
-              <a href="/contact-us" className={contactNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Contact us</a>
+              <a href="/contact-us" className={contactNavClass()} onClick={() => setIsMobileMenuOpen(false)}>Contact Us</a>
             </nav>
             {mobileConnectSection}
             <button className="mobile-menu-call" onClick={navigateToContact}>Get in touch</button>
@@ -3724,6 +3572,8 @@ function App() {
           </div>
         </section>
       </main>
+      {sharedFooterSection}
+      </>
     )
   }
 
@@ -3754,12 +3604,12 @@ function App() {
               </a>
               <nav className="menu">
                 <a href="/" className={navClass('#home')}>Home</a>
-                <a href="/services/project-management" className={serviceNavClass()}>Services</a>
+                <a href="/services/" className={serviceNavClass()}>Services</a>
                 <a href="/industries" className={industriesNavClass()}>Industries</a>
-                <a href="/about-us" className={aboutNavClass()}>About us</a>
+                <a href="/about-us" className={aboutNavClass()}>About Us</a>
                 <a href="/team" className={navClass('/team')}>Our Team</a>
                 <a href="/careers" className={careersNavClass()}>Careers</a>
-                <a href="/contact-us" className={contactNavClass()}>Contact us</a>
+                <a href="/contact-us" className={contactNavClass()}>Contact Us</a>
               </nav>
               <button
                 className="menu-toggle"
@@ -3804,7 +3654,7 @@ function App() {
                 Home
               </a>
               <a
-                href="/services/project-management"
+                href="/services/"
                 className={serviceNavClass()}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
@@ -3814,7 +3664,7 @@ function App() {
                 Industries
               </a>
               <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-                About us
+                About Us
               </a>
               <a href="/team" className={navClass('/team')} onClick={() => setIsMobileMenuOpen(false)}>
                 Our Team
@@ -3823,7 +3673,7 @@ function App() {
                 Careers
               </a>
               <a href="/contact-us" className={contactNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-                Contact us
+                Contact Us
               </a>
             </nav>
             {mobileConnectSection}
@@ -3886,6 +3736,7 @@ function App() {
             const hasServiceImage = resolvedServiceImage.length > 0
             return (
               <article
+                id={resolveServiceSectionId(service)}
                 key={`services-page-row-${service.id}`}
                 className={`services-data-row ${serviceIndex % 2 === 1 ? 'is-reversed' : ''}`}
               >
@@ -3954,10 +3805,10 @@ function App() {
         <nav className="related-links" aria-label="Related Synergy services">
           <h2>Explore more from Synergy Project Management</h2>
           <ul>
-            <li><a href="/services/project-management">Project Management</a> — planning, execution, and delivery oversight.</li>
-            <li><a href="/services/finance">Finance Department</a> — IFRS reporting, VAT, and Corporate Tax in the UAE.</li>
-            <li><a href="/services/compliance">Compliance Department</a> — regulatory strategy across UAE, GCC, and UK.</li>
-            <li><a href="/services/hr">Human Resources</a> — recruitment, payroll, and engagement across UAE & UK.</li>
+            <li><a href="/services/#project-management">Project Management</a> — planning, execution, and delivery oversight.</li>
+            <li><a href="/services/#finance">Finance Department</a> — IFRS reporting, VAT, and Corporate Tax in the UAE.</li>
+            <li><a href="/services/#compliance">Compliance Department</a> — regulatory strategy across UAE, GCC, and UK.</li>
+            <li><a href="/services/#hr">Human Resources</a> — recruitment, payroll, and engagement across UAE & UK.</li>
             <li><a href="/industries">Industries we serve</a> from distribution to retail and AI systems.</li>
             <li><a href="/about-us">About Synergy</a> and our 14+ year operating track record.</li>
             <li><a href="/team">Meet our department leads</a> driving the work.</li>
@@ -3982,7 +3833,12 @@ function App() {
     isPrivacyRoute ||
     isCookieRoute
   if (isUnknownServiceRoute || !isKnownStaticRoute) {
-    return <NotFoundPage onGoHome={() => navigateWithTransition('/', { replace: true })} />
+    return (
+      <>
+        <NotFoundPage onGoHome={() => navigateWithTransition('/', { replace: true })} />
+        {sharedFooterSection}
+      </>
+    )
   }
 
   return (
@@ -3995,12 +3851,12 @@ function App() {
             </a>
             <nav className="menu">
               <a href="/" className={navClass('#home')}>Home</a>
-              <a href="/services/project-management" className={serviceNavClass()}>Services</a>
+              <a href="/services/" className={serviceNavClass()}>Services</a>
               <a href="/industries" className={industriesNavClass()}>Industries</a>
-              <a href="/about-us" className={aboutNavClass()}>About us</a>
+              <a href="/about-us" className={aboutNavClass()}>About Us</a>
               <a href="/team" className={navClass('/team')}>Our Team</a>
               <a href="/careers" className={careersNavClass()}>Careers</a>
-              <a href="/contact-us" className={contactNavClass()}>Contact us</a>
+              <a href="/contact-us" className={contactNavClass()}>Contact Us</a>
             </nav>
             <button
               className="menu-toggle"
@@ -4047,7 +3903,7 @@ function App() {
             Home
           </a>
           <a
-            href="/services/project-management"
+            href="/services/"
             className={serviceNavClass()}
             onClick={() => setIsMobileMenuOpen(false)}
           >
@@ -4057,14 +3913,14 @@ function App() {
             Industries
           </a>
           <a href="/about-us" className={aboutNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-            About us
+            About Us
           </a>
           <a href="/team" className={navClass('/team')} onClick={() => setIsMobileMenuOpen(false)}>Our Team</a>
           <a href="/careers" className={careersNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
             Careers
           </a>
           <a href="/contact-us" className={contactNavClass()} onClick={() => setIsMobileMenuOpen(false)}>
-            Contact us
+            Contact Us
           </a>
         </nav>
         {mobileConnectSection}
@@ -4121,12 +3977,12 @@ function App() {
                 </a>
                 <nav className="menu">
                   <a href="/" className={navClass('#home')}>Home</a>
-                  <a href="/services/project-management" className={serviceNavClass()}>Services</a>
+                  <a href="/services/" className={serviceNavClass()}>Services</a>
                   <a href="/industries" className={industriesNavClass()}>Industries</a>
-                  <a href="/about-us" className={aboutNavClass()}>About us</a>
+                  <a href="/about-us" className={aboutNavClass()}>About Us</a>
                   <a href="/team" className={navClass('/team')}>Our Team</a>
                   <a href="/careers" className={careersNavClass()}>Careers</a>
-                  <a href="/contact-us" className={contactNavClass()}>Contact us</a>
+                  <a href="/contact-us" className={contactNavClass()}>Contact Us</a>
                 </nav>
                 <button
                   className="menu-toggle"
@@ -4154,7 +4010,7 @@ function App() {
                     {siteContent.branding.hero_subtitle}
                   </p>
                   <div className="cta-row">
-                    <a className="primary home-hero-primary" href="/services/project-management">
+                    <a className="primary home-hero-primary" href="/services/#project-management">
                       Our Services
                       <span className="call-btn-icon" aria-hidden="true">
                         <UpRightArrowIcon />
@@ -4274,7 +4130,7 @@ function App() {
               className="home-services-view-all primary"
               onClick={() => navigateWithTransition(homepageServicesHref)}
             >
-              View all services
+              View All Services
               <span aria-hidden="true">
                 <UpRightArrowIcon />
               </span>
@@ -4329,7 +4185,7 @@ function App() {
               className="home-services-view-all primary sixth-view-all-staff"
               onClick={() => navigateWithTransition('/team')}
             >
-              View all staff
+              View Our Team
               <span aria-hidden="true">
                 <UpRightArrowIcon />
               </span>
