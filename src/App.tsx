@@ -4180,16 +4180,6 @@ function App() {
           <header className="sixth-header">
             <p className="sixth-kicker">Synergy Project Management</p>
             <h2>{siteContent.branding.team_title}</h2>
-            <button
-              type="button"
-              className="home-services-view-all primary sixth-view-all-staff"
-              onClick={() => navigateWithTransition('/team')}
-            >
-              View Our Team
-              <span aria-hidden="true">
-                <UpRightArrowIcon />
-              </span>
-            </button>
           </header>
 
           <div className="sixth-grid">
@@ -4239,6 +4229,19 @@ function App() {
                 ))}
               </div>
             ))}
+          </div>
+
+          <div className="sixth-team-cta">
+            <button
+              type="button"
+              className="home-services-view-all primary sixth-view-all-staff"
+              onClick={() => navigateWithTransition('/team')}
+            >
+              View Our Team
+              <span aria-hidden="true">
+                <UpRightArrowIcon />
+              </span>
+            </button>
           </div>
         </div>
       </section>

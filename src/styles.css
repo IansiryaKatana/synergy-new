@@ -3731,9 +3731,17 @@ h1 {
   line-height: 0.94;
 }
 
+.sixth-team-cta {
+  flex-shrink: 0;
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
 .sixth-view-all-staff {
-  margin: 1rem 0 0;
-  align-self: flex-start;
+  margin: 0;
 }
 
 .sixth-grid {
