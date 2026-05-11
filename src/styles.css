@@ -1685,6 +1685,17 @@ a {
   gap: 0.38rem;
 }
 
+.about-team-footer-action {
+  width: min(1440px, 100%);
+  margin: 0.8rem auto 0;
+  display: flex;
+  justify-content: center;
+}
+
+.about-team-footer-action .home-services-view-all {
+  margin: 0;
+}
+
 .about-team-dot {
   width: 22px;
   height: 6px;
@@ -3717,6 +3728,11 @@ h1 {
   font-family: 'Bricolage Grotesque', sans-serif;
   font-size: clamp(2.2rem, 5vw, 4.6rem);
   line-height: 0.94;
+}
+
+.sixth-view-all-staff {
+  margin: 1rem 0 0;
+  align-self: flex-start;
 }
 
 .sixth-grid {
@@ -6660,10 +6676,6 @@ h1 {
     gap: 0.5rem;
   }
 
-  .about-team-heading-actions .home-services-view-all {
-    margin-left: 0;
-  }
-
   .about-team-cards-track {
     --about-team-carousel-gap: 0;
     --about-team-visible-cards: 1;
@@ -6690,6 +6702,11 @@ h1 {
 
   .about-team-dots {
     justify-content: flex-start;
+  }
+
+  .about-team-footer-action {
+    justify-content: flex-start;
+    margin-top: 0.65rem;
   }
 
   .contact-page-hero-content {

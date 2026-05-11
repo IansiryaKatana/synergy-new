@@ -2085,16 +2085,6 @@ function App() {
                 <h2>Our team</h2>
               </div>
               <div className="about-team-heading-actions">
-                <button
-                  type="button"
-                  className="home-services-view-all primary"
-                  onClick={() => navigateWithTransition('/team')}
-                >
-                  View all staff
-                  <span aria-hidden="true">
-                    <UpRightArrowIcon />
-                  </span>
-                </button>
                 {!isMobileViewport ? <div className="about-team-nav-arrows" aria-label="Team navigation">
                 <button
                   type="button"
@@ -2178,6 +2168,18 @@ function App() {
                 aria-selected={aboutTeamActiveVisualDot === index}
               />
             ))}
+          </div>
+          <div className="about-team-footer-action">
+            <button
+              type="button"
+              className="home-services-view-all primary"
+              onClick={() => navigateWithTransition('/team')}
+            >
+              View all staff
+              <span aria-hidden="true">
+                <UpRightArrowIcon />
+              </span>
+            </button>
           </div>
           </section>
 
@@ -2420,14 +2422,14 @@ function App() {
           type="text"
           value={contactName}
           onChange={(event) => setContactName(event.target.value)}
-          placeholder="Your Name"
+          placeholder="Your name"
           required
         />
         <input
           type="email"
           value={contactEmail}
           onChange={(event) => setContactEmail(event.target.value)}
-          placeholder="Your email Address"
+          placeholder="Your email address"
           required
         />
         <PhoneInputComponent
@@ -2438,7 +2440,7 @@ function App() {
             required: true,
             name: 'phone',
           }}
-          placeholder="Your Phone Number"
+          placeholder="Your phone number"
           enableSearch
           disableSearchIcon
           countryCodeEditable={false}
@@ -2450,7 +2452,7 @@ function App() {
         <textarea
           value={contactMessage}
           onChange={(event) => setContactMessage(event.target.value)}
-          placeholder="Your Message"
+          placeholder="Your message"
           rows={6}
           required
         />
@@ -4322,6 +4324,16 @@ function App() {
           <header className="sixth-header">
             <p className="sixth-kicker">Synergy Project Management</p>
             <h2>{siteContent.branding.team_title}</h2>
+            <button
+              type="button"
+              className="home-services-view-all primary sixth-view-all-staff"
+              onClick={() => navigateWithTransition('/team')}
+            >
+              View all staff
+              <span aria-hidden="true">
+                <UpRightArrowIcon />
+              </span>
+            </button>
           </header>
 
           <div className="sixth-grid">
