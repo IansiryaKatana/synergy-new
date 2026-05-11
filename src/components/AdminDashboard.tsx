@@ -116,7 +116,22 @@ const BRANDING_MEDIA_FIELDS = new Set([
 ])
 
 const JOB_FIELD_OPTIONS: Record<string, string[]> = {
-  department: ['Finance', 'Compliance', 'Human Resources', 'Operations', 'Project Management'],
+  department: [
+    'Finance',
+    'Development',
+    'Sales',
+    'Maintenance',
+    'Supply Chain and Operations',
+    'Marketing',
+    'Compliance',
+    'Human Resources',
+    'Project Management',
+    'Design',
+    'Customer Service',
+    'Information Technology',
+    'Legal',
+    'Administration',
+  ],
   employment_type: ['Full-time', 'Part-time', 'Contract', 'Temporary', 'Internship'],
   location_label: ['Dubai, UAE', 'Abu Dhabi, UAE', 'Remote - UAE', 'London, UK', 'Remote - UK'],
   workplace_type: ['On-site', 'Hybrid', 'Remote'],
