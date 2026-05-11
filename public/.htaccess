@@ -1,5 +1,120 @@
+# ---------------------------------------------------------------------------
+# Synergy Project Management - Apache config (production)
+# Enables compression, caching, security headers, and SPA fallback.
+# ---------------------------------------------------------------------------
+
+# Default character set
+AddDefaultCharset UTF-8
+
+# ---------------------------------------------------------------------------
+# 1) MIME types - ensure modern formats are served correctly
+# ---------------------------------------------------------------------------
+<IfModule mod_mime.c>
+  AddType image/webp                       .webp
+  AddType image/avif                       .avif
+  AddType image/svg+xml                    .svg .svgz
+  AddType application/manifest+json        .webmanifest
+  AddType application/wasm                 .wasm
+  AddType text/cache-manifest              .appcache
+  AddType application/json                 .json
+  AddType application/xml                  .xml
+  AddType font/woff                        .woff
+  AddType font/woff2                       .woff2
+  AddType video/mp4                        .mp4 .m4v
+  AddType video/webm                       .webm
+</IfModule>
+
+# ---------------------------------------------------------------------------
+# 2) GZIP / DEFLATE compression - smaller payloads, faster paint
+# ---------------------------------------------------------------------------
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml text/javascript application/javascript application/json application/xml application/xhtml+xml application/manifest+json image/svg+xml font/woff font/woff2
+</IfModule>
+
+# ---------------------------------------------------------------------------
+# 3) Browser caching - keep static assets warm, revalidate HTML
+# ---------------------------------------------------------------------------
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresDefault                              "access plus 1 month"
+
+  # HTML & data - revalidate every request so users see fresh routes/meta
+  ExpiresByType text/html                     "access plus 0 seconds"
+  ExpiresByType application/json              "access plus 0 seconds"
+  ExpiresByType application/xml               "access plus 1 hour"
+
+  # Hashed Vite assets are immutable for 1 year
+  ExpiresByType text/css                      "access plus 1 year"
+  ExpiresByType application/javascript        "access plus 1 year"
+  ExpiresByType text/javascript               "access plus 1 year"
+
+  # Images & media
+  ExpiresByType image/jpeg                    "access plus 6 months"
+  ExpiresByType image/png                     "access plus 6 months"
+  ExpiresByType image/webp                    "access plus 6 months"
+  ExpiresByType image/avif                    "access plus 6 months"
+  ExpiresByType image/svg+xml                 "access plus 6 months"
+  ExpiresByType image/x-icon                  "access plus 6 months"
+  ExpiresByType video/mp4                     "access plus 6 months"
+  ExpiresByType video/webm                    "access plus 6 months"
+
+  # Fonts
+  ExpiresByType font/woff                     "access plus 1 year"
+  ExpiresByType font/woff2                    "access plus 1 year"
+
+  # Web manifest
+  ExpiresByType application/manifest+json     "access plus 1 week"
+</IfModule>
+
+<IfModule mod_headers.c>
+  # Immutable cache for hashed build assets
+  <FilesMatch "\.(?:css|js|woff2|woff|ttf|otf)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # Long cache for images and media
+  <FilesMatch "\.(?:png|jpe?g|gif|webp|avif|svg|ico|mp4|webm)$">
+    Header set Cache-Control "public, max-age=15552000"
+  </FilesMatch>
+
+  # Always revalidate HTML so route changes show up
+  <FilesMatch "\.(?:html)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+
+  # Sitemap & robots - short cache
+  <FilesMatch "(robots\.txt|sitemap\.xml)$">
+    Header set Cache-Control "public, max-age=3600"
+  </FilesMatch>
+
+  # ----- Security headers -----
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), interest-cohort=()"
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" env=HTTPS
+
+  # Remove server identification
+  Header unset X-Powered-By
+  Header always unset X-Powered-By
+</IfModule>
+
+# ---------------------------------------------------------------------------
+# 4) Force HTTPS (assumes hosting provider terminates SSL)
+# ---------------------------------------------------------------------------
 <IfModule mod_rewrite.c>
   RewriteEngine On
+
+  # Redirect HTTP to HTTPS
+  RewriteCond %{HTTPS} off
+  RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Strip trailing slashes (except root) for canonical URLs
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_URI} ^(.+)/$
+  RewriteRule ^ %1 [L,R=301]
+
   RewriteBase /
 
   # Serve existing files and directories directly.
@@ -10,3 +125,10 @@
   # SPA fallback: send all other routes to index.html.
   RewriteRule ^ index.html [L]
 </IfModule>
+
+# ---------------------------------------------------------------------------
+# 5) Hardening - block access to dotfiles and sensitive files
+# ---------------------------------------------------------------------------
+<FilesMatch "(^\.|\.env$|\.git|\.htaccess$|\.htpasswd$|composer\.json$|package\.json$|package-lock\.json$|tsconfig\.json$|vite\.config\.ts$)">
+  Require all denied
+</FilesMatch>

@@ -1,4 +1,6 @@
 import {
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
@@ -15,9 +17,14 @@ import PhoneInputLib from 'react-phone-input-2'
 import 'react-phone-input-2/lib/style.css'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { AdminDashboard, type AdminPage } from './components/AdminDashboard'
+import type { AdminPage } from './components/AdminDashboard'
 import Noise from './components/Noise'
 import { contentApi, type JobPost, type ServiceItem, type SiteContent, type TeamMember } from './lib/content'
+
+// Admin bundle is large and only used on /backend; keep it out of the public payload.
+const AdminDashboard = lazy(() =>
+  import('./components/AdminDashboard').then((module) => ({ default: module.AdminDashboard })),
+)
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -235,9 +242,12 @@ function AboutTeamCardImage({ member }: { member: TeamMember }) {
       {!loaded ? <span className="about-team-card-skeleton" aria-hidden="true" /> : null}
       <img
         src={avatarUrl}
-        alt={member.name}
+        alt={`${member.name}, ${member.role} at Synergy Project Management`}
         className={`about-team-card-image ${loaded ? 'loaded' : ''}`}
         loading="lazy"
+        decoding="async"
+        width="320"
+        height="320"
         onLoad={() => setLoaded(true)}
         onError={() => {
           setFailed(true)
@@ -812,16 +822,18 @@ function App() {
       )
     }
     return (
-      <AdminDashboard
-        page={adminPage}
-        branding={siteContent.branding}
-        team={siteContent.team}
-        services={siteContent.services}
-        insights={siteContent.insights}
-        media={siteContent.media}
-        jobs={siteContent.jobs}
-        onRefresh={loadContent}
-      />
+      <Suspense fallback={<main className="backend-login-page" aria-busy="true" />}>
+        <AdminDashboard
+          page={adminPage}
+          branding={siteContent.branding}
+          team={siteContent.team}
+          services={siteContent.services}
+          insights={siteContent.insights}
+          media={siteContent.media}
+          jobs={siteContent.jobs}
+          onRefresh={loadContent}
+        />
+      </Suspense>
     )
   }
 
@@ -1306,26 +1318,37 @@ function App() {
   useEffect(() => {
     if (typeof document === 'undefined' || typeof window === 'undefined') return
 
-    const defaultTitle = 'Synergy Project Management'
+    const siteName = 'Synergy Project Management'
+    const productionOrigin = 'https://synergypm.ae'
+    const defaultTitle = 'Synergy Project Management | Project, Compliance, HR & Finance in Dubai'
     const defaultDescription =
-      'Synergy Project Management provides integrated project management, compliance, HR, and finance delivery services in Dubai and beyond.'
-    const ogImage = '/og-image.webp'
+      'Synergy Project Management is a Dubai-based growth partner delivering integrated project management, compliance, HR, and finance services across the UAE, GCC, and UK.'
+    const fallbackOgImage = `${productionOrigin}/og-image.webp`
     const currentPath = window.location.pathname || '/'
-    const currentUrl = `${window.location.origin}${currentPath}`
+    const currentUrl = `${productionOrigin}${currentPath}`
 
     let pageTitle = defaultTitle
     let pageDescription = defaultDescription
+    let pageKeywords =
+      'project management Dubai, compliance UAE, finance outsourcing GCC, HR Dubai, corporate tax UAE, VAT compliance, regulatory consulting Dubai, business operations UAE, Synergy Project Management'
+    let pageOgImage = fallbackOgImage
+    type BreadcrumbCrumb = { name: string; url: string }
+    const breadcrumbs: BreadcrumbCrumb[] = [{ name: 'Home', url: `${productionOrigin}/` }]
 
     if (isServicesRoute) {
+      breadcrumbs.push({ name: 'Services', url: `${productionOrigin}/services/project-management` })
       if (activeServiceCard) {
-        pageTitle = `${activeServiceCard.title} | Synergy Services`
+        pageTitle = `${activeServiceCard.title} Services in Dubai | Synergy Project Management`
         pageDescription = clampMetaDescription(
-          `${activeServiceCard.description} Synergy Project Management delivers integrated execution, governance, and operational support.`,
+          `${activeServiceCard.description}. Synergy Project Management delivers integrated execution, governance, and operational support across UAE, GCC, and UK.`,
         )
+        pageKeywords = `${activeServiceCard.title} Dubai, ${activeServiceCard.title} UAE, ${pageKeywords}`
+        if (activeServiceCard.image_url) pageOgImage = activeServiceCard.image_url
+        breadcrumbs.push({ name: activeServiceCard.title, url: currentUrl })
       } else {
-        pageTitle = 'Services | Synergy Project Management'
+        pageTitle = 'Services | Project Management, Compliance, HR & Finance in Dubai | Synergy'
         pageDescription = clampMetaDescription(
-          'Explore Synergy services across project management, compliance, HR, and finance with one coordinated delivery model.',
+          'Explore Synergy services across project management, compliance, HR, and finance with one coordinated delivery model in the UAE and GCC.',
         )
       }
     } else if (isProjectsRoute) {
@@ -1333,51 +1356,72 @@ function App() {
       pageDescription = clampMetaDescription(
         'View Synergy project outcomes and strategic execution highlights across finance, compliance, HR, and delivery operations.',
       )
+      breadcrumbs.push({ name: 'Projects', url: currentUrl })
     } else if (isAboutRoute) {
-      pageTitle = 'About Us | Synergy Project Management'
+      pageTitle = 'About Synergy | Dubai Growth Partner for Multi-Industry Operations'
       pageDescription = clampMetaDescription(
-        'Learn about Synergy Project Management, our multidisciplinary team, and how we align departments into one growth-ready operating system.',
+        'Learn about Synergy Project Management, our multidisciplinary Dubai team, and how we align departments into one growth-ready operating system across industries.',
       )
+      pageKeywords = `about Synergy Project Management, Dubai project management company, multi-industry operations, ${pageKeywords}`
+      breadcrumbs.push({ name: 'About Us', url: currentUrl })
     } else if (isIndustriesRoute) {
-      pageTitle = 'Industries | Synergy Project Management'
+      pageTitle = 'Industries We Operate In | Synergy Project Management Dubai'
       pageDescription = clampMetaDescription(
-        'Explore Synergy industries across distribution, accommodation, digital systems, marketing, design, retail, operations, and construction.',
+        'Synergy builds and scales operations across distribution, warehousing, transport, residential, retail, AI systems, marketing, design, and construction.',
       )
+      pageKeywords = `industries Dubai, distribution UAE, warehousing fulfilment, transport freight Dubai, retail Dubai, AI systems, student accommodation, ${pageKeywords}`
+      breadcrumbs.push({ name: 'Industries', url: currentUrl })
+    } else if (isTeamRoute) {
+      pageTitle = 'Our Team | The Minds Behind Synergy Project Management'
+      pageDescription = clampMetaDescription(
+        'Meet the leadership and specialists driving Synergy Project Management across finance, compliance, HR, marketing, design, and delivery.',
+      )
+      pageKeywords = `Synergy team, Dubai project management team, finance leadership UAE, HR leadership Dubai, ${pageKeywords}`
+      breadcrumbs.push({ name: 'Our Team', url: currentUrl })
     } else if (isTermsRoute) {
       pageTitle = 'Terms of Use | Synergy Project Management'
       pageDescription = clampMetaDescription(
         'Read the Terms of Use for accessing and using the Synergy Project Management website.',
       )
+      breadcrumbs.push({ name: 'Terms of Use', url: currentUrl })
     } else if (isPrivacyRoute) {
       pageTitle = 'Privacy Policy | Synergy Project Management'
       pageDescription = clampMetaDescription(
         'Read how Synergy Project Management handles personal data and protects your privacy.',
       )
+      breadcrumbs.push({ name: 'Privacy Policy', url: currentUrl })
     } else if (isCookieRoute) {
       pageTitle = 'Cookie Policy | Synergy Project Management'
       pageDescription = clampMetaDescription(
         'Learn how Synergy Project Management uses cookies and related technologies on this website.',
       )
+      breadcrumbs.push({ name: 'Cookie Policy', url: currentUrl })
     } else if (isCareersRoute) {
+      breadcrumbs.push({ name: 'Careers', url: `${productionOrigin}/careers` })
       if (selectedCareerJob) {
         const detailSource = selectedCareerJob.job_description_html
           ? stripHtml(selectedCareerJob.job_description_html)
           : selectedCareerJob.summary
-        pageTitle = `${selectedCareerJob.title} | Careers at Synergy`
+        pageTitle = `${selectedCareerJob.title} (${selectedCareerJob.location_label || 'Dubai'}) | Careers at Synergy`
         pageDescription = clampMetaDescription(
-          `${detailSource || selectedCareerJob.title} Apply to join Synergy Project Management in ${selectedCareerJob.location_label || 'Dubai'}.`,
+          `${detailSource || selectedCareerJob.title}. Apply to join Synergy Project Management in ${selectedCareerJob.location_label || 'Dubai'}.`,
         )
+        pageKeywords = `${selectedCareerJob.title} jobs, ${selectedCareerJob.department} careers, ${pageKeywords}`
+        breadcrumbs.push({ name: selectedCareerJob.title, url: currentUrl })
       } else {
-        pageTitle = 'Careers | Synergy Project Management'
+        pageTitle = 'Careers | Open Roles at Synergy Project Management Dubai'
         pageDescription = clampMetaDescription(
-          'Explore open roles at Synergy Project Management and join our mission across project management, compliance, HR, and finance.',
+          'Explore open roles at Synergy Project Management and join our mission across project management, compliance, HR, finance, and design.',
         )
+        pageKeywords = `Synergy careers, jobs Dubai, project management jobs, finance jobs UAE, HR jobs Dubai, ${pageKeywords}`
       }
     } else if (isContactRoute) {
-      pageTitle = 'Contact Us | Synergy Project Management'
+      pageTitle = 'Contact Synergy Project Management | Dubai Headquarters'
       pageDescription = clampMetaDescription(
-        'Contact Synergy Project Management to discuss your project, compliance, HR, or finance requirements.',
+        'Get in touch with Synergy Project Management in Dubai to discuss your project, compliance, HR, or finance requirements across the UAE, GCC, and UK.',
       )
+      pageKeywords = `contact Synergy Project Management, Dubai office, project management Dubai contact, ${pageKeywords}`
+      breadcrumbs.push({ name: 'Contact Us', url: currentUrl })
     } else if (isHomeRoute) {
       pageTitle = defaultTitle
       pageDescription = defaultDescription
@@ -1408,31 +1452,133 @@ function App() {
       tag.setAttribute('content', content)
     }
 
-    const ensureCanonical = (href: string) => {
-      let link = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null
+    const ensureLink = (rel: string, href: string, hreflang?: string) => {
+      const selector = hreflang
+        ? `link[rel="${rel}"][hreflang="${hreflang}"]`
+        : `link[rel="${rel}"]:not([hreflang])`
+      let link = document.querySelector(selector) as HTMLLinkElement | null
       if (!link) {
         link = document.createElement('link')
-        link.setAttribute('rel', 'canonical')
+        link.setAttribute('rel', rel)
+        if (hreflang) link.setAttribute('hreflang', hreflang)
         document.head.appendChild(link)
       }
       link.setAttribute('href', href)
     }
 
+    const ensureJsonLd = (id: string, payload: Record<string, unknown> | Record<string, unknown>[]) => {
+      let script = document.querySelector(`script[data-jsonld="${id}"]`) as HTMLScriptElement | null
+      if (!script) {
+        script = document.createElement('script')
+        script.type = 'application/ld+json'
+        script.setAttribute('data-jsonld', id)
+        document.head.appendChild(script)
+      }
+      script.textContent = JSON.stringify(payload)
+    }
+
+    const isIndexable = !currentPath.startsWith('/backend')
+
     document.title = pageTitle
     ensureMetaByName('description', pageDescription)
-    ensureMetaByName('robots', currentPath.startsWith('/backend') ? 'noindex, nofollow' : 'index, follow')
-    ensureMetaByProperty('og:type', 'website')
-    ensureMetaByProperty('og:site_name', 'Synergy Project Management')
+    ensureMetaByName('keywords', pageKeywords)
+    ensureMetaByName(
+      'robots',
+      isIndexable
+        ? 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1'
+        : 'noindex, nofollow',
+    )
+    ensureMetaByName(
+      'googlebot',
+      isIndexable
+        ? 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1'
+        : 'noindex, nofollow',
+    )
+
+    ensureMetaByProperty('og:type', selectedCareerJob ? 'article' : 'website')
+    ensureMetaByProperty('og:site_name', siteName)
+    ensureMetaByProperty('og:locale', 'en_US')
     ensureMetaByProperty('og:title', pageTitle)
     ensureMetaByProperty('og:description', pageDescription)
     ensureMetaByProperty('og:url', currentUrl)
-    ensureMetaByProperty('og:image', ogImage)
-    ensureMetaByProperty('og:image:alt', 'Synergy Project Management')
+    ensureMetaByProperty('og:image', pageOgImage)
+    ensureMetaByProperty('og:image:alt', `${siteName} - ${pageTitle}`)
+
     ensureMetaByName('twitter:card', 'summary_large_image')
     ensureMetaByName('twitter:title', pageTitle)
     ensureMetaByName('twitter:description', pageDescription)
-    ensureMetaByName('twitter:image', ogImage)
-    ensureCanonical(currentUrl)
+    ensureMetaByName('twitter:image', pageOgImage)
+    ensureMetaByName('twitter:image:alt', `${siteName} - ${pageTitle}`)
+
+    // Canonical + hreflang point at the production origin so dev/staging do not get crawled with mismatched hostnames.
+    ensureLink('canonical', currentUrl)
+    ensureLink('alternate', currentUrl, 'en')
+    ensureLink('alternate', currentUrl, 'x-default')
+
+    if (isIndexable && breadcrumbs.length > 1) {
+      ensureJsonLd('breadcrumb', {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: breadcrumbs.map((crumb, index) => ({
+          '@type': 'ListItem',
+          position: index + 1,
+          name: crumb.name,
+          item: crumb.url,
+        })),
+      })
+    } else {
+      const existing = document.querySelector('script[data-jsonld="breadcrumb"]')
+      if (existing) existing.remove()
+    }
+
+    if (isIndexable && isCareersRoute && selectedCareerJob) {
+      ensureJsonLd('jobposting', {
+        '@context': 'https://schema.org',
+        '@type': 'JobPosting',
+        title: selectedCareerJob.title,
+        description: selectedCareerJob.job_description_html || selectedCareerJob.summary,
+        employmentType: (selectedCareerJob.employment_type || 'FULL_TIME').toUpperCase().replace(/[\s-]+/g, '_'),
+        datePosted: new Date().toISOString().split('T')[0],
+        hiringOrganization: {
+          '@type': 'Organization',
+          name: siteName,
+          sameAs: productionOrigin,
+          logo: `${productionOrigin}/SYNERGY%20logo.png`,
+        },
+        jobLocation: {
+          '@type': 'Place',
+          address: {
+            '@type': 'PostalAddress',
+            addressLocality: selectedCareerJob.location_label || 'Dubai',
+            addressCountry: 'AE',
+          },
+        },
+        directApply: true,
+      })
+    } else {
+      const existing = document.querySelector('script[data-jsonld="jobposting"]')
+      if (existing) existing.remove()
+    }
+
+    if (isIndexable && isServicesRoute && activeServiceCard) {
+      ensureJsonLd('service', {
+        '@context': 'https://schema.org',
+        '@type': 'Service',
+        name: activeServiceCard.title,
+        description: activeServiceCard.description,
+        provider: {
+          '@type': 'Organization',
+          name: siteName,
+          url: productionOrigin,
+        },
+        areaServed: ['AE', 'GB', 'GCC'],
+        serviceType: activeServiceCard.title,
+        url: currentUrl,
+      })
+    } else {
+      const existing = document.querySelector('script[data-jsonld="service"]')
+      if (existing) existing.remove()
+    }
   }, [
     activeServiceCard,
     isAboutRoute,
@@ -1445,6 +1591,7 @@ function App() {
     isProjectsRoute,
     isServicesRoute,
     isTermsRoute,
+    isTeamRoute,
     selectedCareerJob,
   ])
 
@@ -1512,23 +1659,31 @@ function App() {
               </div>
             </div>
             <div className="footer-reference-col">
-              <p>Links</p>
-              <a href="/">Home</a>
-              <a href="/about-us">About</a>
-              <a href="/services/project-management">Services</a>
-              <a href="/industries">Industries</a>
-              <a href="/contact-us">Contact</a>
+              <p>Company</p>
+              <a href="/" title="Synergy Project Management home">Home</a>
+              <a href="/about-us" title="About Synergy Project Management">About Us</a>
+              <a href="/industries" title="Industries Synergy operates in">Industries</a>
+              <a href="/team" title="Meet the Synergy team">Our Team</a>
+              <a href="/careers" title="Careers at Synergy">Careers</a>
+              <a href="/contact-us" title="Contact Synergy in Dubai">Contact Us</a>
+            </div>
+            <div className="footer-reference-col">
+              <p>Services</p>
+              <a href="/services/project-management" title="Project Management services in Dubai">Project Management</a>
+              <a href="/services/finance" title="Finance services in Dubai and UAE">Finance Department</a>
+              <a href="/services/compliance" title="Compliance services across UAE and GCC">Compliance Department</a>
+              <a href="/services/hr" title="HR services in UAE and UK">Human Resources</a>
             </div>
             <div className="footer-reference-col">
               <p>Legal</p>
-              <a href="/privacy-policy">Privacy Policy</a>
-              <a href="/terms-of-use">Terms of Use</a>
-              <a href="/cookie-policy">Cookie Policy</a>
+              <a href="/privacy-policy" rel="nofollow">Privacy Policy</a>
+              <a href="/terms-of-use" rel="nofollow">Terms of Use</a>
+              <a href="/cookie-policy" rel="nofollow">Cookie Policy</a>
             </div>
           </div>
           <div className="footer-reference-bottom">
             <div className="footer-reference-bottom-left">
-              <img src="/SYNERGY logo.png" alt={siteContent.branding.company_name} className="footer-reference-logo" />
+              <img src="/SYNERGY logo.png" alt={`${siteContent.branding.company_name} logo`} className="footer-reference-logo" decoding="async" />
               <span>Copyright © 2026</span>
             </div>
             <span>All rights reserved.</span>
@@ -1541,7 +1696,7 @@ function App() {
     <header className={`top-nav top-nav-global return-visible returning-header mobile-header-spaced ${showReturnHeader ? '' : 'scroll-hidden'}`}>
       <div className="nav-bubble">
         <a className="brand" href="/">
-          <img src="/SYNERGY logo.png" alt="Synergy Project Management" className="brand-wordmark-image" />
+          <img src="/SYNERGY logo.png" alt="Synergy Project Management logo" className="brand-wordmark-image" decoding="async" />
         </a>
         <nav className="menu">
           <a href="/" className={navClass('#home')}>Home</a>
@@ -1596,13 +1751,15 @@ function App() {
                 <a className="brand" href="/">
                   <img
                     src="/SYNERGY logo.png"
-                    alt={siteContent.branding.company_name}
+                    alt={`${siteContent.branding.company_name} logo`}
                     className="brand-wordmark-image about-brand-desktop"
+                    decoding="async"
                   />
                   <img
                     src="/SYNERGY logo.png"
-                    alt={siteContent.branding.company_name}
+                    alt={`${siteContent.branding.company_name} logo`}
                     className="brand-wordmark-image about-brand-mobile"
+                    decoding="async"
                   />
                 </a>
                 <nav className="menu">
@@ -1712,7 +1869,16 @@ function App() {
                         aria-selected={isActive}
                         aria-label={`Show ${projectTitleText}`}
                       >
-                        {thumbSrc ? <img src={thumbSrc} alt={projectTitleText} loading="lazy" /> : null}
+                        {thumbSrc ? (
+                          <img
+                            src={thumbSrc}
+                            alt={`${projectTitleText} - Synergy Project Management`}
+                            loading="lazy"
+                            decoding="async"
+                            width="320"
+                            height="180"
+                          />
+                        ) : null}
                         <span>{formatProjectTitle(project.title)}</span>
                       </button>
                     )
@@ -1752,13 +1918,15 @@ function App() {
               <a className="brand" href="/">
                 <img
                   src="/syngergy-logo.png"
-                  alt={siteContent.branding.company_name}
+                  alt={`${siteContent.branding.company_name} logo`}
                   className="brand-wordmark-image about-brand-desktop"
+                  decoding="async"
                 />
                 <img
                   src="/SYNERGY logo.png"
-                  alt={siteContent.branding.company_name}
+                  alt={`${siteContent.branding.company_name} logo`}
                   className="brand-wordmark-image about-brand-mobile"
+                  decoding="async"
                 />
               </a>
               <nav className="menu">
@@ -2012,6 +2180,20 @@ function App() {
             ))}
           </div>
           </section>
+
+          <nav className="related-links" aria-label="Related Synergy pages">
+            <h2>Where to go next</h2>
+            <ul>
+              <li><a href="/services/project-management">Project Management services</a> — execution governance and delivery.</li>
+              <li><a href="/services/finance">Finance Department services</a> — IFRS-aligned controls, reporting, and audits.</li>
+              <li><a href="/services/compliance">Compliance Department services</a> — UAE & GCC regulatory pathways.</li>
+              <li><a href="/services/hr">Human Resources services</a> — workforce planning across UAE & UK.</li>
+              <li><a href="/industries">Industries we operate in</a> — distribution, retail, AI systems, and more.</li>
+              <li><a href="/team">Meet the Synergy team</a> — the people behind the momentum.</li>
+              <li><a href="/careers">Careers at Synergy</a> — join us across departments.</li>
+              <li><a href="/contact-us">Contact our Dubai office</a> to discuss your next project.</li>
+            </ul>
+          </nav>
         </main>
         {sharedFooterSection}
       </>
@@ -2029,13 +2211,15 @@ function App() {
                 <a className="brand" href="/">
                   <img
                     src="/SYNERGY logo.png"
-                    alt={siteContent.branding.company_name}
+                    alt={`${siteContent.branding.company_name} logo`}
                     className="brand-wordmark-image about-brand-desktop"
+                    decoding="async"
                   />
                   <img
                     src="/SYNERGY logo.png"
-                    alt={siteContent.branding.company_name}
+                    alt={`${siteContent.branding.company_name} logo`}
                     className="brand-wordmark-image about-brand-mobile"
+                    decoding="async"
                   />
                 </a>
                 <nav className="menu">
@@ -2147,7 +2331,11 @@ function App() {
             </div>
             <div className="industries-hero-image" style={{ backgroundImage: `url("${industriesHeroImage}")` }}>
               <div className="industries-hero-image-mark">
-                <img src="/SYNERGY logo.png" alt={siteContent.branding.company_name} />
+                <img
+                  src="/SYNERGY logo.png"
+                  alt={`${siteContent.branding.company_name} logo`}
+                  decoding="async"
+                />
               </div>
             </div>
           </section>
@@ -2184,6 +2372,38 @@ function App() {
               </article>
             ))}
           </section>
+
+          <nav className="related-links" aria-label="Related pages">
+            <h2>Continue exploring Synergy Project Management</h2>
+            <ul>
+              <li>
+                <a href="/services/project-management">
+                  Discover our Project Management services in Dubai
+                </a>
+              </li>
+              <li>
+                <a href="/services/finance">Finance Department services across UAE & UK</a>
+              </li>
+              <li>
+                <a href="/services/compliance">Compliance Department services in the UAE & GCC</a>
+              </li>
+              <li>
+                <a href="/services/hr">Human Resources services in UAE & UK</a>
+              </li>
+              <li>
+                <a href="/about-us">About Synergy Project Management</a>
+              </li>
+              <li>
+                <a href="/team">Meet the team behind the momentum</a>
+              </li>
+              <li>
+                <a href="/careers">Open career opportunities at Synergy</a>
+              </li>
+              <li>
+                <a href="/contact-us">Contact our Dubai office</a>
+              </li>
+            </ul>
+          </nav>
         </main>
         {sharedFooterSection}
       </>
@@ -2257,13 +2477,15 @@ function App() {
               <a className="brand" href="/">
                 <img
                   src="/syngergy-logo.png"
-                  alt={siteContent.branding.company_name}
+                  alt={`${siteContent.branding.company_name} logo`}
                   className="brand-wordmark-image contact-brand-desktop"
+                  decoding="async"
                 />
                 <img
                   src="/SYNERGY logo.png"
-                  alt={siteContent.branding.company_name}
+                  alt={`${siteContent.branding.company_name} logo`}
                   className="brand-wordmark-image contact-brand-mobile"
+                  decoding="async"
                 />
               </a>
               <nav className="menu">
@@ -2409,7 +2631,7 @@ function App() {
         <header className="top-nav top-nav-global return-visible returning-header policy-header">
           <div className="nav-bubble">
             <a className="brand" href="/">
-              <img src="/SYNERGY logo.png" alt="Synergy Project Management" className="brand-wordmark-image" />
+              <img src="/SYNERGY logo.png" alt="Synergy Project Management logo" className="brand-wordmark-image" decoding="async" />
             </a>
             <nav className="menu">
               <a href="/" className={navClass('#home')}>Home</a>
@@ -2925,7 +3147,7 @@ function App() {
         <header className={`top-nav top-nav-global return-visible returning-header careers-return-header mobile-header-spaced ${showReturnHeader ? '' : 'scroll-hidden'}`}>
           <div className="nav-bubble">
             <a className="brand" href="/">
-              <img src="/SYNERGY logo.png" alt="Synergy Project Management" className="brand-wordmark-image" />
+              <img src="/SYNERGY logo.png" alt="Synergy Project Management logo" className="brand-wordmark-image" decoding="async" />
             </a>
             <nav className="menu">
               <a href="/" className={navClass('#home')}>Home</a>
@@ -2958,13 +3180,15 @@ function App() {
             <a className="brand" href="/">
               <img
                 src="/SYNERGY logo.png"
-                alt={siteContent.branding.company_name}
+                alt={`${siteContent.branding.company_name} logo`}
                 className="brand-wordmark-image careers-brand-desktop"
+                decoding="async"
               />
               <img
                 src="/SYNERGY logo.png"
-                alt={siteContent.branding.company_name}
+                alt={`${siteContent.branding.company_name} logo`}
                 className="brand-wordmark-image careers-brand-mobile"
+                decoding="async"
               />
             </a>
             <nav className="menu">
@@ -3295,7 +3519,7 @@ function App() {
         <header className={`top-nav top-nav-global return-visible returning-header careers-return-header mobile-header-spaced ${showReturnHeader ? '' : 'scroll-hidden'}`}>
           <div className="nav-bubble">
             <a className="brand" href="/">
-              <img src="/SYNERGY logo.png" alt="Synergy Project Management" className="brand-wordmark-image" />
+              <img src="/SYNERGY logo.png" alt="Synergy Project Management logo" className="brand-wordmark-image" decoding="async" />
             </a>
             <nav className="menu">
               <a href="/" className={navClass('#home')}>Home</a>
@@ -3328,13 +3552,15 @@ function App() {
             <a className="brand" href="/">
               <img
                 src="/SYNERGY logo.png"
-                alt={siteContent.branding.company_name}
+                alt={`${siteContent.branding.company_name} logo`}
                 className="brand-wordmark-image careers-brand-desktop"
+                decoding="async"
               />
               <img
                 src="/SYNERGY logo.png"
-                alt={siteContent.branding.company_name}
+                alt={`${siteContent.branding.company_name} logo`}
                 className="brand-wordmark-image careers-brand-mobile"
+                decoding="async"
               />
             </a>
             <nav className="menu">
@@ -3513,13 +3739,15 @@ function App() {
               <a className="brand" href="/">
                 <img
                   src="/syngergy-logo.png"
-                  alt={siteContent.branding.company_name}
+                  alt={`${siteContent.branding.company_name} logo`}
                   className="brand-wordmark-image about-brand-desktop"
+                  decoding="async"
                 />
                 <img
                   src="/SYNERGY logo.png"
-                  alt={siteContent.branding.company_name}
+                  alt={`${siteContent.branding.company_name} logo`}
                   className="brand-wordmark-image about-brand-mobile"
+                  decoding="async"
                 />
               </a>
               <nav className="menu">
@@ -3661,14 +3889,18 @@ function App() {
               >
                 <div
                   className="services-data-image"
-                  aria-hidden="true"
+                  role="img"
+                  aria-label={`${service.title} services delivered by Synergy Project Management`}
                 >
                   {hasServiceImage ? (
                     <img
                       src={resolvedServiceImage}
-                      alt=""
+                      alt={`${service.title} services delivered by Synergy Project Management`}
                       className="services-data-image-media"
                       loading="lazy"
+                      decoding="async"
+                      width="960"
+                      height="640"
                     />
                   ) : null}
                   <Noise
@@ -3716,6 +3948,20 @@ function App() {
             )
           })}
         </section>
+
+        <nav className="related-links" aria-label="Related Synergy services">
+          <h2>Explore more from Synergy Project Management</h2>
+          <ul>
+            <li><a href="/services/project-management">Project Management</a> — planning, execution, and delivery oversight.</li>
+            <li><a href="/services/finance">Finance Department</a> — IFRS reporting, VAT, and Corporate Tax in the UAE.</li>
+            <li><a href="/services/compliance">Compliance Department</a> — regulatory strategy across UAE, GCC, and UK.</li>
+            <li><a href="/services/hr">Human Resources</a> — recruitment, payroll, and engagement across UAE & UK.</li>
+            <li><a href="/industries">Industries we serve</a> from distribution to retail and AI systems.</li>
+            <li><a href="/about-us">About Synergy</a> and our 14+ year operating track record.</li>
+            <li><a href="/team">Meet our department leads</a> driving the work.</li>
+            <li><a href="/contact-us">Talk to our Dubai team</a> about your next engagement.</li>
+          </ul>
+        </nav>
         {sharedFooterSection}
       </main>
       </>
@@ -3743,7 +3989,7 @@ function App() {
         <header className="top-nav top-nav-global return-visible returning-header mobile-header-spaced">
           <div className="nav-bubble">
             <a className="brand" href="/">
-              <img src="/SYNERGY logo.png" alt="Synergy Project Management" className="brand-wordmark-image" />
+              <img src="/SYNERGY logo.png" alt="Synergy Project Management logo" className="brand-wordmark-image" decoding="async" />
             </a>
             <nav className="menu">
               <a href="/" className={navClass('#home')}>Home</a>
@@ -3848,14 +4094,28 @@ function App() {
                     <source src={homepageHeroMediaSrc} />
                   </video>
                 ) : (
-                  <img src={homepageHeroMediaSrc} alt="" className="sticky-blue-wash-video" loading="eager" />
+                  <img
+                    src={homepageHeroMediaSrc}
+                    alt=""
+                    aria-hidden="true"
+                    className="sticky-blue-wash-video"
+                    loading="eager"
+                    decoding="async"
+                    fetchPriority="high"
+                  />
                 )
               ) : null}
             </div>
             <header className="top-nav top-nav-hero" style={headerBlendVars}>
               <div className="nav-bubble">
                 <a className="brand" href="/">
-                  <img src="/syngergy-logo.png" alt={siteContent.branding.company_name} className="brand-wordmark-image" />
+                  <img
+                    src="/syngergy-logo.png"
+                    alt={`${siteContent.branding.company_name} logo`}
+                    className="brand-wordmark-image"
+                    decoding="async"
+                    fetchPriority="high"
+                  />
                 </a>
                 <nav className="menu">
                   <a href="/" className={navClass('#home')}>Home</a>
@@ -4083,7 +4343,15 @@ function App() {
                     <div className="member-meta">
                       <span className="member-avatar">
                         {member.avatar_url ? (
-                          <img src={member.avatar_url} alt={member.name} className="member-avatar-image" />
+                          <img
+                            src={member.avatar_url}
+                            alt={`${member.name}, ${member.role} at Synergy Project Management`}
+                            className="member-avatar-image"
+                            loading="lazy"
+                            decoding="async"
+                            width="80"
+                            height="80"
+                          />
                         ) : (
                           member.initials
                         )}
@@ -4124,7 +4392,15 @@ function App() {
           <>
             <div className="member-dialog-media">
               {selectedMember.avatar_url ? (
-                <img src={selectedMember.avatar_url} alt={selectedMember.name} className="member-dialog-image" />
+                <img
+                  src={selectedMember.avatar_url}
+                  alt={`${selectedMember.name}, ${selectedMember.role} at Synergy Project Management`}
+                  className="member-dialog-image"
+                  loading="lazy"
+                  decoding="async"
+                  width="480"
+                  height="480"
+                />
               ) : (
                 <span>{selectedMember.initials}</span>
               )}

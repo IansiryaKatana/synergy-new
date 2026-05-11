@@ -1,12 +1,13 @@
+# Root-level Apache config mirror for hosts that read .htaccess from project root.
+# Authoritative copy lives in public/.htaccess (deployed to dist root).
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
 
-  # Serve existing files and directories directly.
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # SPA fallback: send all other routes to index.html.
   RewriteRule ^ index.html [L]
 </IfModule>

@@ -2,37 +2,157 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a1f3a" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a1f3a" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- Performance: connect early to Supabase API/storage origins used at runtime -->
+    <link rel="preconnect" href="https://fjnzcubicgrkhbwwrtpu.supabase.co" crossorigin />
+    <link rel="dns-prefetch" href="https://fjnzcubicgrkhbwwrtpu.supabase.co" />
+
+    <!-- Preload primary brand assets that paint above the fold -->
+    <link rel="preload" as="image" href="/syngergy-logo.png" fetchpriority="high" />
+    <link rel="preload" as="image" href="/SYNERGY%20logo.png" />
+
+    <title>Synergy Project Management | Project, Compliance, HR & Finance in Dubai</title>
+
     <meta
       name="description"
-      content="Synergy Project Management provides integrated project management, compliance, HR, and finance delivery services in Dubai and beyond."
+      content="Synergy Project Management is a Dubai-based growth partner delivering integrated project management, compliance, HR, and finance services across the UAE, GCC, and UK."
     />
-    <meta name="robots" content="index, follow" />
-    <link rel="canonical" href="https://synergypm.com/" />
+    <meta
+      name="keywords"
+      content="project management Dubai, compliance services UAE, finance outsourcing GCC, HR management Dubai, corporate tax UAE, VAT compliance, regulatory consulting Dubai, business operations UAE, Synergy Project Management"
+    />
+    <meta name="author" content="Synergy Project Management" />
+    <meta name="publisher" content="Synergy Project Management" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="bingbot" content="index, follow" />
+    <meta name="rating" content="general" />
+    <meta name="distribution" content="global" />
+    <meta name="revisit-after" content="7 days" />
+
+    <!-- Geo targeting (Dubai HQ) -->
+    <meta name="geo.region" content="AE-DU" />
+    <meta name="geo.placename" content="Dubai" />
+    <meta name="geo.position" content="25.2048;55.2708" />
+    <meta name="ICBM" content="25.2048, 55.2708" />
+
+    <link rel="canonical" href="https://synergypm.ae/" />
+    <link rel="alternate" href="https://synergypm.ae/" hreflang="en" />
+    <link rel="alternate" href="https://synergypm.ae/" hreflang="x-default" />
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Synergy Project Management" />
-    <meta property="og:title" content="Synergy Project Management" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="en_GB" />
+    <meta property="og:locale:alternate" content="ar_AE" />
+    <meta property="og:title" content="Synergy Project Management | Dubai-Based Growth & Delivery Partner" />
     <meta
       property="og:description"
-      content="Integrated project management, compliance, HR, and finance services built for reliable business growth."
+      content="Integrated project management, compliance, HR, and finance services built for reliable business growth across the UAE, GCC, and UK."
     />
-    <meta property="og:url" content="https://synergypm.com/" />
-    <meta property="og:image" content="/og-image.webp" />
-    <meta property="og:image:alt" content="Synergy Project Management" />
+    <meta property="og:url" content="https://synergypm.ae/" />
+    <meta property="og:image" content="https://synergypm.ae/og-image.webp" />
+    <meta property="og:image:secure_url" content="https://synergypm.ae/og-image.webp" />
+    <meta property="og:image:type" content="image/webp" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Synergy Project Management - Dubai-based growth partner" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Synergy Project Management" />
+    <meta name="twitter:site" content="@synergypm" />
+    <meta name="twitter:creator" content="@synergypm" />
+    <meta name="twitter:title" content="Synergy Project Management | Dubai-Based Growth & Delivery Partner" />
     <meta
       name="twitter:description"
-      content="Integrated project management, compliance, HR, and finance services built for reliable business growth."
+      content="Integrated project management, compliance, HR, and finance services built for reliable business growth across the UAE, GCC, and UK."
     />
-    <meta name="twitter:image" content="/og-image.webp" />
-    <title>Synergy Project Management</title>
+    <meta name="twitter:image" content="https://synergypm.ae/og-image.webp" />
+    <meta name="twitter:image:alt" content="Synergy Project Management" />
+
+    <!-- Organization JSON-LD: brand identity and contact info for rich results -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "@id": "https://synergypm.ae/#organization",
+        "name": "Synergy Project Management",
+        "alternateName": "Synergy PM",
+        "url": "https://synergypm.ae/",
+        "logo": "https://synergypm.ae/SYNERGY%20logo.png",
+        "image": "https://synergypm.ae/og-image.webp",
+        "description": "Dubai-based growth partner delivering integrated project management, compliance, HR, and finance services across the UAE, GCC, and UK.",
+        "foundingDate": "2011",
+        "email": "Info@synergypm.ae",
+        "areaServed": ["AE", "GB", "GCC"],
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Dubai",
+          "addressRegion": "Dubai",
+          "addressCountry": "AE"
+        },
+        "contactPoint": [
+          {
+            "@type": "ContactPoint",
+            "contactType": "customer service",
+            "email": "Info@synergypm.ae",
+            "areaServed": ["AE", "GB", "GCC"],
+            "availableLanguage": ["English", "Arabic"]
+          }
+        ],
+        "sameAs": [
+          "https://www.linkedin.com/company/synergy-project-management",
+          "https://www.instagram.com/synergypm"
+        ]
+      }
+    </script>
+
+    <!-- WebSite JSON-LD: enables sitelinks search box potential -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "@id": "https://synergypm.ae/#website",
+        "url": "https://synergypm.ae/",
+        "name": "Synergy Project Management",
+        "publisher": { "@id": "https://synergypm.ae/#organization" },
+        "inLanguage": "en"
+      }
+    </script>
   </head>
   <body>
     <div id="app"></div>
+    <noscript>
+      <div style="padding:24px;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#0a1f3a">
+        <h1>Synergy Project Management</h1>
+        <p>
+          Synergy Project Management is a Dubai-based growth partner delivering integrated project management,
+          compliance, HR, and finance services across the UAE, GCC, and UK. JavaScript is required to view the full
+          experience. Please enable JavaScript or contact us at
+          <a href="mailto:Info@synergypm.ae">Info@synergypm.ae</a>.
+        </p>
+        <ul>
+          <li><a href="/about-us">About Us</a></li>
+          <li><a href="/services/project-management">Project Management Services</a></li>
+          <li><a href="/services/finance">Finance Services</a></li>
+          <li><a href="/services/compliance">Compliance Services</a></li>
+          <li><a href="/services/hr">HR Services</a></li>
+          <li><a href="/industries">Industries</a></li>
+          <li><a href="/team">Our Team</a></li>
+          <li><a href="/careers">Careers</a></li>
+          <li><a href="/contact-us">Contact Us</a></li>
+        </ul>
+      </div>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

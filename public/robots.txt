@@ -1,0 +1,36 @@
+# Synergy Project Management - robots.txt
+# https://synergypm.ae
+
+User-agent: *
+Allow: /
+Disallow: /backend
+Disallow: /backend/
+Disallow: /admin
+Disallow: /admin/
+Disallow: /*?*
+Disallow: /api/
+
+# Disallow internal storage previews
+Disallow: /*.json$
+
+# Crawl-delay is ignored by Google but honored by Bing/Yandex
+Crawl-delay: 1
+
+# AI training crawlers - allow indexing but no model training
+User-agent: GPTBot
+Disallow: /backend
+Disallow: /admin
+
+User-agent: ClaudeBot
+Disallow: /backend
+Disallow: /admin
+
+User-agent: PerplexityBot
+Disallow: /backend
+Disallow: /admin
+
+User-agent: CCBot
+Disallow: /
+
+Sitemap: https://synergypm.ae/sitemap.xml
+Host: https://synergypm.ae
