@@ -20,6 +20,11 @@ import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import type { AdminPage } from './components/AdminDashboard'
 import Noise from './components/Noise'
+import {
+  buildCareerSlugByJobId,
+  formatCareerSeoTitle,
+  resolveJobFromCareerPathSegment,
+} from './lib/careerUrls'
 import { contentApi, type JobPost, type ServiceItem, type SiteContent, type TeamMember } from './lib/content'
 
 // Admin bundle is large and only used on /backend; keep it out of the public payload.
@@ -889,18 +894,31 @@ function App() {
     const uniqueDepartments = Array.from(new Set(siteContent.jobs.map((job) => job.department).filter(Boolean)))
     return ['View All', ...uniqueDepartments]
   }, [siteContent.jobs])
+  const careerSlugByJobId = useMemo(() => buildCareerSlugByJobId(siteContent.jobs), [siteContent.jobs])
   const selectedCareerId = useMemo(() => {
     if (!isCareersRoute) return ''
     const pathWithoutQuery = activePathWithoutHash.split('?')[0]
     const normalizedCareerPath = pathWithoutQuery.replace(/^\/careers?\/?/i, '')
     const [firstSegment = ''] = normalizedCareerPath.split('/').filter(Boolean)
     return firstSegment
-  }, [activePathname, isCareersRoute])
+  }, [activePathWithoutHash, isCareersRoute])
   const selectedCareerJob = useMemo(
-    () => siteContent.jobs.find((job) => job.id.toLowerCase() === selectedCareerId.toLowerCase()) ?? null,
-    [selectedCareerId, siteContent.jobs],
+    () => resolveJobFromCareerPathSegment(selectedCareerId, siteContent.jobs, careerSlugByJobId),
+    [selectedCareerId, siteContent.jobs, careerSlugByJobId],
   )
   const isCareerDetailRoute = isCareersRoute && selectedCareerId.length > 0
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!isCareersRoute || !selectedCareerJob || !hasLoadedContent) return
+    const slug = careerSlugByJobId[selectedCareerJob.id]
+    if (!slug) return
+    const currentPathOnly = (window.location.pathname.split('?')[0] || '/').replace(/\/+$/, '') || '/'
+    const desiredPath = `/careers/${slug}`
+    if (currentPathOnly === desiredPath) return
+    navigateWithTransition(`${desiredPath}${window.location.search}${window.location.hash}`, { replace: true })
+  }, [isCareersRoute, selectedCareerJob, hasLoadedContent, careerSlugByJobId, navigateWithTransition])
+
   const teamMembers = siteContent.team
   const teamCarouselDotCount = 6
   const visibleTeamMembers = useMemo(
@@ -1427,15 +1445,19 @@ function App() {
     } else if (isCareersRoute) {
       breadcrumbs.push({ name: 'Careers', url: `${productionOrigin}/careers` })
       if (selectedCareerJob) {
-        const detailSource = selectedCareerJob.job_description_html
+        const canonicalSlug = careerSlugByJobId[selectedCareerJob.id]
+        const careerUrl =
+          canonicalSlug != null && canonicalSlug !== ''
+            ? `${productionOrigin}/careers/${canonicalSlug}`
+            : currentUrl
+        const bio = (selectedCareerJob.summary || '').trim()
+        const fallbackDetail = selectedCareerJob.job_description_html
           ? stripHtml(selectedCareerJob.job_description_html)
-          : selectedCareerJob.summary
-        pageTitle = `${selectedCareerJob.title} (${selectedCareerJob.location_label || 'Dubai'}) | Careers at Synergy`
-        pageDescription = clampMetaDescription(
-          `${detailSource || selectedCareerJob.title}. Apply to join Synergy Project Management in ${selectedCareerJob.location_label || 'Dubai'}.`,
-        )
+          : ''
+        pageTitle = formatCareerSeoTitle(selectedCareerJob.title)
+        pageDescription = clampMetaDescription(bio || fallbackDetail || selectedCareerJob.title)
         pageKeywords = `${selectedCareerJob.title} jobs, ${selectedCareerJob.department} careers, ${pageKeywords}`
-        breadcrumbs.push({ name: selectedCareerJob.title, url: currentUrl })
+        breadcrumbs.push({ name: selectedCareerJob.title, url: careerUrl })
       } else {
         pageTitle = 'Careers | Open Roles at Synergy Project Management Dubai'
         pageDescription = clampMetaDescription(
@@ -1523,12 +1545,17 @@ function App() {
         : 'noindex, nofollow',
     )
 
+    const canonicalAndOgUrl =
+      isCareersRoute && selectedCareerJob && careerSlugByJobId[selectedCareerJob.id]
+        ? `${productionOrigin}/careers/${careerSlugByJobId[selectedCareerJob.id]}`
+        : currentUrl
+
     ensureMetaByProperty('og:type', selectedCareerJob ? 'article' : 'website')
     ensureMetaByProperty('og:site_name', siteName)
     ensureMetaByProperty('og:locale', 'en_GB')
     ensureMetaByProperty('og:title', pageTitle)
     ensureMetaByProperty('og:description', pageDescription)
-    ensureMetaByProperty('og:url', currentUrl)
+    ensureMetaByProperty('og:url', canonicalAndOgUrl)
     ensureMetaByProperty('og:image', pageOgImage)
     ensureMetaByProperty('og:image:alt', `${siteName} - ${pageTitle}`)
 
@@ -1539,9 +1566,9 @@ function App() {
     ensureMetaByName('twitter:image:alt', `${siteName} - ${pageTitle}`)
 
     // Canonical + hreflang point at the production origin so dev/staging do not get crawled with mismatched hostnames.
-    ensureLink('canonical', currentUrl)
-    ensureLink('alternate', currentUrl, 'en')
-    ensureLink('alternate', currentUrl, 'x-default')
+    ensureLink('canonical', canonicalAndOgUrl)
+    ensureLink('alternate', canonicalAndOgUrl, 'en')
+    ensureLink('alternate', canonicalAndOgUrl, 'x-default')
 
     if (isIndexable && breadcrumbs.length > 1) {
       ensureJsonLd('breadcrumb', {
@@ -1582,6 +1609,7 @@ function App() {
           },
         },
         directApply: true,
+        url: canonicalAndOgUrl,
       })
     } else {
       const existing = document.querySelector('script[data-jsonld="jobposting"]')
@@ -1621,6 +1649,7 @@ function App() {
     isTermsRoute,
     isTeamRoute,
     selectedCareerJob,
+    careerSlugByJobId,
   ])
 
   useEffect(() => {
@@ -3330,9 +3359,9 @@ function App() {
                 </div>
                 <section className="careers-list" aria-label="Open roles">
                   {careersHeroJobs.map((job: JobPost, index: number) => {
-                    const jobHref = `/careers/${job.id}`
+                    const jobHref = `/careers/${careerSlugByJobId[job.id]}`
                     const openJobDetails = () => {
-                      window.location.href = jobHref
+                      navigateWithTransition(jobHref)
                     }
                     return (
                       <article
