@@ -1801,8 +1801,23 @@ a {
   line-height: 1.15;
 }
 
+.about-team-department-chip {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.38rem;
+  border: none;
+  border-radius: 999px;
+  background: rgba(0, 122, 255, 0.14);
+  color: rgba(0, 72, 166, 0.96);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  padding: 0.36rem 0.62rem;
+}
+
 .about-team-card-meta p {
-  margin: 0.25rem 0 0;
+  margin: 0.38rem 0 0;
   font-size: clamp(1.05rem, 1.45vw, 1.28rem);
   line-height: 1.4;
   color: rgba(17, 31, 47, 0.58);
@@ -3271,8 +3286,34 @@ h1 {
   margin: 0;
 }
 
-.team-services-item > p {
+.team-services-meta {
   min-height: 58px;
+  margin-top: 0.72rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.42rem;
+}
+
+.team-services-item > .team-services-meta > p {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.4;
+  color: rgba(15, 31, 53, 0.72);
+}
+
+.team-department-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: none;
+  background: rgba(0, 122, 255, 0.14);
+  color: rgba(0, 72, 166, 0.96);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  padding: 0.36rem 0.62rem;
 }
 
 .team-services-card {
@@ -3358,7 +3399,7 @@ h1 {
     touch-action: pan-x pan-y;
   }
 
-  .team-home-services-section .team-services-item > p {
+  .team-home-services-section .team-services-meta {
     min-height: 0;
   }
 }

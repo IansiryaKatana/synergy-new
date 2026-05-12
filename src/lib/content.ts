@@ -5,6 +5,7 @@ export type TeamMember = {
   initials: string
   name: string
   role: string
+  department?: string | null
   bio: string
   email: string
   number: string
@@ -430,6 +431,9 @@ export const contentApi = {
   },
   async bulkSetActive(table: string, ids: string[], is_active: boolean) {
     await supabaseRest.patchByIds(table, ids, { is_active })
+  },
+  async bulkUpdate(table: string, ids: string[], payload: Record<string, unknown>) {
+    await supabaseRest.patchByIds(table, ids, payload)
   },
   async upsertRow(table: string, payload: Record<string, unknown>) {
     await supabaseRest.upsert(table, payload)

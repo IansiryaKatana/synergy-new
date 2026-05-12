@@ -2014,6 +2014,7 @@ function App() {
                   </div>
                   <div className="about-team-card-meta">
                     <h3>{member.name}</h3>
+                    {member.department ? <span className="about-team-department-chip">{member.department}</span> : null}
                     <p>{member.role}</p>
                   </div>
                 </article>
@@ -3532,7 +3533,10 @@ function App() {
                           >
                             <h3>{member.name}</h3>
                           </div>
-                          <p>{member.role}</p>
+                          <div className="team-services-meta">
+                            {member.department ? <span className="team-department-chip">{member.department}</span> : null}
+                            <p>{member.role}</p>
+                          </div>
                         </article>
                       ))}
                     </div>
@@ -3569,7 +3573,10 @@ function App() {
                         >
                           <h3>{member.name}</h3>
                         </div>
-                        <p>{member.role}</p>
+                        <div className="team-services-meta">
+                          {member.department ? <span className="team-department-chip">{member.department}</span> : null}
+                          <p>{member.role}</p>
+                        </div>
                       </article>
                     ))}
                   </div>

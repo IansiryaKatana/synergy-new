@@ -137,6 +137,8 @@ const JOB_FIELD_OPTIONS: Record<string, string[]> = {
   workplace_type: ['On-site', 'Hybrid', 'Remote'],
 }
 
+const TEAM_DEPARTMENT_OPTIONS = ['Finance', 'Human Resources', 'Legal & Compliance', 'Project Management'] as const
+
 const JOB_BULK_UPLOAD_FIELDS = [
   'id',
   'title',
@@ -194,6 +196,7 @@ export function AdminDashboard(props: AdminProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const [teamSearch, setTeamSearch] = useState('')
   const [teamVisibilityFilter, setTeamVisibilityFilter] = useState<'active' | 'inactive' | 'all'>('active')
+  const [bulkDepartment, setBulkDepartment] = useState('')
   const [scrollProgress, setScrollProgress] = useState(0)
   const [formValues, setFormValues] = useState<Record<string, unknown>>({})
   const [serviceEditorTab, setServiceEditorTab] = useState<'general' | 'details'>('general')
@@ -255,6 +258,7 @@ export function AdminDashboard(props: AdminProps) {
       const haystack = [
         String(row.name ?? ''),
         String(row.role ?? ''),
+        String(row.department ?? ''),
         String(row.email ?? ''),
         String(row.initials ?? ''),
         String(row.id ?? ''),
@@ -416,6 +420,27 @@ export function AdminDashboard(props: AdminProps) {
     }
     setSaving(false)
     setStatus(error ?? `Updated ${selectedIds.length} row(s).`)
+    await props.onRefresh()
+  }
+
+  const bulkAssignDepartment = async () => {
+    if (entity !== 'team_members') return
+    if (selectedIds.length === 0) return
+    const department = bulkDepartment.trim()
+    if (!department) {
+      setStatus('Select a department to apply.')
+      return
+    }
+    setSaving(true)
+    let error: string | null = null
+    try {
+      await contentApi.bulkUpdate(entity, selectedIds, { department })
+    } catch (err) {
+      error = err instanceof Error ? err.message : 'Unable to assign department.'
+    }
+    setSaving(false)
+    setStatus(error ?? `Assigned department "${department}" to ${selectedIds.length} team member(s).`)
+    if (!error) setBulkDepartment('')
     await props.onRefresh()
   }
 
@@ -1117,6 +1142,30 @@ export function AdminDashboard(props: AdminProps) {
                   <button className="admin-btn" disabled={saving || selectedIds.length === 0} onClick={() => bulkSetActive(true)}>Bulk activate</button>
                   <button className="admin-btn" disabled={saving || selectedIds.length === 0} onClick={() => bulkSetActive(false)}>Bulk deactivate</button>
                   <button className="admin-btn admin-btn-danger" disabled={saving || selectedIds.length === 0} onClick={bulkDelete}>Bulk delete</button>
+                  {props.page === 'team' ? (
+                    <>
+                      <select
+                        className="admin-search-input"
+                        value={bulkDepartment}
+                        onChange={(event) => setBulkDepartment(event.target.value)}
+                        aria-label="Select department for bulk assignment"
+                      >
+                        <option value="">Assign department...</option>
+                        {TEAM_DEPARTMENT_OPTIONS.map((department) => (
+                          <option key={department} value={department}>
+                            {department}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        className="admin-btn"
+                        disabled={saving || selectedIds.length === 0 || !bulkDepartment}
+                        onClick={bulkAssignDepartment}
+                      >
+                        Bulk assign department
+                      </button>
+                    </>
+                  ) : null}
                   {props.page === 'careers' ? (
                     <>
                       <button className="admin-btn" disabled={saving} onClick={downloadJobsTemplate}>
@@ -1201,8 +1250,9 @@ export function AdminDashboard(props: AdminProps) {
                     <tr>
                       <th><input type="checkbox" checked={allSelected} onChange={toggleAll} /></th>
                       {props.page === 'team' || props.page === 'insights' ? <th>Image</th> : null}
-                      <th>ID</th>
                       <th>Label</th>
+                      {props.page === 'team' ? <th>Department</th> : null}
+                      {props.page === 'team' ? <th>Role</th> : null}
                       <th>Order</th>
                       <th>Active</th>
                       <th>Action</th>
@@ -1223,8 +1273,9 @@ export function AdminDashboard(props: AdminProps) {
                             </span>
                           </td>
                         ) : null}
-                        <td>{row.id}</td>
                         <td>{row.name ?? row.title ?? row.label}</td>
+                        {props.page === 'team' ? <td>{row.department ?? '-'}</td> : null}
+                        {props.page === 'team' ? <td>{row.role ?? '-'}</td> : null}
                         <td>{row.sort_order}</td>
                         <td>{row.is_active ? 'Yes' : 'No'}</td>
                         <td><button className="admin-btn" onClick={() => setActionRow(row)}>Actions</button></td>
@@ -1536,7 +1587,7 @@ export function AdminDashboard(props: AdminProps) {
 
 function defaultForm(entity: EntityType): Record<string, unknown> {
   const base = { id: '', sort_order: 1, is_active: true }
-  if (entity === 'team_members') return { ...base, initials: '', name: '', role: '', bio: '', email: '', number: '', avatar_url: '' }
+  if (entity === 'team_members') return { ...base, initials: '', name: '', role: '', department: '', bio: '', email: '', number: '', avatar_url: '' }
   if (entity === 'services') return { ...base, title: '', description: '', quote: '', image_url: '', detail_sections: '[]' }
   if (entity === 'insights') return { ...base, chip: '', date_label: '', title: '', project_description_html: '', alt_style: false, image_url: '', hero_image_url: '' }
   if (entity === 'job_posts') return { ...base, title: '', department: '', summary: '', job_description_html: '', notification_email: '', location_label: '', employment_type: '', workplace_type: '', apply_url: '' }
@@ -1591,7 +1642,7 @@ function renderFields(
   uploadFieldFile?: (field: string, file: File) => Promise<void>,
 ) {
   const fields: Record<EntityType, string[]> = {
-    team_members: ['avatar_url', 'initials', 'name', 'role', 'bio', 'email', 'number', 'sort_order', 'is_active'],
+    team_members: ['avatar_url', 'initials', 'name', 'role', 'department', 'bio', 'email', 'number', 'sort_order', 'is_active'],
     services: ['image_url', 'title', 'description', 'sort_order', 'is_active'],
     insights: ['image_url', 'hero_image_url', 'chip', 'date_label', 'title', 'project_description_html', 'alt_style', 'sort_order', 'is_active'],
     job_posts: ['title', 'department', 'summary', 'job_description_html', 'notification_email', 'location_label', 'employment_type', 'workplace_type', 'apply_url', 'sort_order', 'is_active'],
@@ -1611,6 +1662,7 @@ function renderFields(
             field === 'employment_type' ||
             field === 'location_label' ||
             field === 'workplace_type')
+        const isTeamDepartmentSelect = entity === 'team_members' && field === 'department'
         const jobOptions = JOB_FIELD_OPTIONS[field] ?? []
         const fieldLabel = formatFieldLabel(field)
         if (isRichText) {
@@ -1649,6 +1701,18 @@ function renderFields(
                     >
                       <option value="">Select {fieldLabel}</option>
                       {jobOptions.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  ) : isTeamDepartmentSelect ? (
+                    <select
+                      value={String(value ?? '')}
+                      onChange={(event) => setFormValues((prev) => ({ ...prev, [field]: event.target.value }))}
+                    >
+                      <option value="">Select {fieldLabel}</option>
+                      {TEAM_DEPARTMENT_OPTIONS.map((option) => (
                         <option key={option} value={option}>
                           {option}
                         </option>
