@@ -82,6 +82,138 @@ body {
   }
 }
 
+/*
+ * Laptop-scale UI (typical 13–16" panels, ~1024–1680 CSS px wide):
+ * vw-heavy fluid type often reads like 110–125% zoom; ease root rem + caps.
+ */
+@media (min-width: 1024px) and (max-width: 1680px) {
+  :root {
+    --header-clearance: 5.35rem;
+  }
+
+  html {
+    font-size: 93.75%;
+  }
+
+  body {
+    font-size: 1.05rem;
+    line-height: 1.48;
+  }
+
+  :where(p, a, span, li, label, button, input, textarea, select, strong, small) {
+    font-size: max(1.05rem, 0.96em);
+  }
+
+  .top-nav .nav-bubble {
+    gap: min(3.25rem, 5vw);
+  }
+
+  .hero-content {
+    padding: 6.35rem 1.45rem 2.35rem;
+  }
+
+  h1,
+  .services-reimagined-hero .about-page-hero-content h1 {
+    font-size: clamp(1.72rem, 3.45vw, 3.35rem) !important;
+  }
+
+  .subtitle {
+    font-size: clamp(0.98rem, 1.12vw, 1.18rem);
+  }
+
+  .sticky-title {
+    font-size: clamp(1.55rem, 3.15vw, 2.75rem);
+  }
+
+  .sticky-text {
+    font-size: clamp(0.92rem, 1.75vw, 1.72rem);
+  }
+
+  .third-line {
+    font-size: clamp(1.62rem, 4.4vw, 4.75rem);
+  }
+
+  .value-card h3 {
+    font-size: clamp(1.52rem, 3.05vw, 2.72rem);
+  }
+
+  .home-services-header h2 {
+    font-size: clamp(1.52rem, 2.85vw, 2.62rem);
+  }
+
+  .home-services-card h3 {
+    font-size: clamp(1.25rem, 1.55vw, 1.88rem);
+  }
+
+  .about-services-header h2 {
+    font-size: clamp(1.72rem, 2.65vw, 2.38rem);
+  }
+
+  .about-team-header h2 {
+    font-size: clamp(1.55rem, 2.85vw, 2.65rem);
+  }
+
+  .fifth-title {
+    font-size: clamp(1.72rem, 3.1vw, 2.72rem);
+  }
+
+  .fifth-desc {
+    font-size: 1.28rem;
+  }
+
+  .services-showcase-header h2 {
+    font-size: clamp(1.62rem, 2.45vw, 2.58rem);
+  }
+
+  .sixth-header h2 {
+    font-size: clamp(1.82rem, 3.55vw, 3.25rem);
+  }
+
+  .services-data-content h2 {
+    font-size: clamp(1.72rem, 3.2vw, 3.15rem);
+  }
+
+  .services-problem-text {
+    font-size: clamp(1.58rem, 3.05vw, 2.72rem);
+  }
+
+  .services-hub-content h1 {
+    font-size: clamp(1.75rem, 3.85vw, 3.25rem);
+  }
+
+  .services-hub-content p {
+    font-size: clamp(0.88rem, 1.08vw, 1.02rem);
+  }
+
+  .insights-lead h2 {
+    font-size: clamp(1.85rem, 3.15vw, 3.25rem);
+  }
+
+  .footer-reference-hero h2 {
+    font-size: clamp(1.75rem, 3.05vw, 2.92rem);
+  }
+
+  .careers-page-content h1 {
+    font-size: clamp(1.82rem, 3.45vw, 2.92rem);
+  }
+
+  .industries-hero-headline h1 {
+    font-size: clamp(1.82rem, 4.05vw, 3.25rem);
+  }
+
+  .industries-about-main h2 {
+    font-size: clamp(1.55rem, 2.65vw, 2.45rem);
+  }
+
+  .policy-page-card h1 {
+    font-size: clamp(1.55rem, 1rem + 1.65vw, 2.15rem);
+  }
+
+  .team-page-content h1 {
+    font-size: clamp(1.82rem, 3.35vw, 2.85rem);
+  }
+}
+
 html {
   overflow-x: clip;
 }
@@ -239,7 +371,7 @@ a {
 }
 
 .top-nav-global.return-visible .nav-bubble {
-  width: min(1280px, calc(100% - 2rem));
+  width: min(1440px, calc(100% - 2rem));
   margin: 0 auto;
   justify-content: space-between;
   gap: 1rem;

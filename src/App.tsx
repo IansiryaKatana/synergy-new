@@ -29,6 +29,26 @@ const AdminDashboard = lazy(() =>
 
 gsap.registerPlugin(ScrollTrigger)
 
+/** Dark gray wordmark + blue G — use on white / frosted nav bubbles */
+const BRAND_WORDMARK = '/syngergy-logo.png'
+/** White wordmark + blue G — use on blue / dark nav bubbles */
+const BRAND_WORDMARK_LIGHT = '/SYNERGY logo.png'
+
+function formatTeamSectionHeading(title: string) {
+  const t = title.trim()
+  const idx = t.search(/\bbehind\b/i)
+  if (idx <= 0) {
+    return t
+  }
+  return (
+    <>
+      {t.slice(0, idx).trimEnd()}
+      <br />
+      {t.slice(idx).trimStart()}
+    </>
+  )
+}
+
 type DialogMode = 'none' | 'book'
 type PhoneInputProps = {
   country?: string
@@ -946,7 +966,7 @@ function App() {
   const industriesHeroImage =
     siteContent.branding.industries_hero_background_url?.trim() ||
     fallbackServiceCardImage ||
-    '/SYNERGY logo.png'
+    BRAND_WORDMARK
   const industriesSectors = [
     {
       title: 'Product Distribution',
@@ -1695,7 +1715,7 @@ function App() {
           </div>
           <div className="footer-reference-bottom">
             <div className="footer-reference-bottom-left">
-              <img src="/SYNERGY logo.png" alt={`${siteContent.branding.company_name} logo`} className="footer-reference-logo" decoding="async" />
+              <img src={BRAND_WORDMARK_LIGHT} alt={`${siteContent.branding.company_name} logo`} className="footer-reference-logo" decoding="async" />
               <span>Copyright © 2026</span>
             </div>
             <span>All rights reserved.</span>
@@ -1708,7 +1728,7 @@ function App() {
     <header className={`top-nav top-nav-global return-visible returning-header mobile-header-spaced ${showReturnHeader ? '' : 'scroll-hidden'}`}>
       <div className="nav-bubble">
         <a className="brand" href="/">
-          <img src="/SYNERGY logo.png" alt="Synergy Project Management logo" className="brand-wordmark-image" decoding="async" />
+          <img src={BRAND_WORDMARK_LIGHT} alt="Synergy Project Management logo" className="brand-wordmark-image" decoding="async" />
         </a>
         <nav className="menu">
           <a href="/" className={navClass('#home')}>Home</a>
@@ -1760,13 +1780,13 @@ function App() {
             <div className="nav-bubble">
               <a className="brand" href="/">
                 <img
-                  src="/SYNERGY logo.png"
+                  src={BRAND_WORDMARK}
                   alt={`${siteContent.branding.company_name} logo`}
                   className="brand-wordmark-image about-brand-desktop"
                   decoding="async"
                 />
                 <img
-                  src="/SYNERGY logo.png"
+                  src={BRAND_WORDMARK_LIGHT}
                   alt={`${siteContent.branding.company_name} logo`}
                   className="brand-wordmark-image about-brand-mobile"
                   decoding="async"
@@ -2055,13 +2075,13 @@ function App() {
               <div className="nav-bubble">
                 <a className="brand" href="/">
                   <img
-                    src="/SYNERGY logo.png"
+                    src={BRAND_WORDMARK_LIGHT}
                     alt={`${siteContent.branding.company_name} logo`}
                     className="brand-wordmark-image about-brand-desktop"
                     decoding="async"
                   />
                   <img
-                    src="/SYNERGY logo.png"
+                    src={BRAND_WORDMARK_LIGHT}
                     alt={`${siteContent.branding.company_name} logo`}
                     className="brand-wordmark-image about-brand-mobile"
                     decoding="async"
@@ -2177,7 +2197,7 @@ function App() {
             <div className="industries-hero-image" style={{ backgroundImage: `url("${industriesHeroImage}")` }}>
               <div className="industries-hero-image-mark">
                 <img
-                  src="/SYNERGY logo.png"
+                  src={BRAND_WORDMARK}
                   alt={`${siteContent.branding.company_name} logo`}
                   decoding="async"
                 />
@@ -2321,13 +2341,13 @@ function App() {
             <div className="nav-bubble">
               <a className="brand" href="/">
                 <img
-                  src="/SYNERGY logo.png"
+                  src={BRAND_WORDMARK}
                   alt={`${siteContent.branding.company_name} logo`}
                   className="brand-wordmark-image contact-brand-desktop"
                   decoding="async"
                 />
                 <img
-                  src="/SYNERGY logo.png"
+                  src={BRAND_WORDMARK_LIGHT}
                   alt={`${siteContent.branding.company_name} logo`}
                   className="brand-wordmark-image contact-brand-mobile"
                   decoding="async"
@@ -2477,7 +2497,7 @@ function App() {
         <header className="top-nav top-nav-global return-visible returning-header policy-header">
           <div className="nav-bubble">
             <a className="brand" href="/">
-              <img src="/SYNERGY logo.png" alt="Synergy Project Management logo" className="brand-wordmark-image" decoding="async" />
+              <img src={BRAND_WORDMARK_LIGHT} alt="Synergy Project Management logo" className="brand-wordmark-image" decoding="async" />
             </a>
             <nav className="menu">
               <a href="/" className={navClass('#home')}>Home</a>
@@ -2994,7 +3014,7 @@ function App() {
         <header className={`top-nav top-nav-global return-visible returning-header careers-return-header mobile-header-spaced ${showReturnHeader ? '' : 'scroll-hidden'}`}>
           <div className="nav-bubble">
             <a className="brand" href="/">
-              <img src="/SYNERGY logo.png" alt="Synergy Project Management logo" className="brand-wordmark-image" decoding="async" />
+              <img src={BRAND_WORDMARK_LIGHT} alt="Synergy Project Management logo" className="brand-wordmark-image" decoding="async" />
             </a>
             <nav className="menu">
               <a href="/" className={navClass('#home')}>Home</a>
@@ -3026,13 +3046,13 @@ function App() {
           <div className="nav-bubble">
             <a className="brand" href="/">
               <img
-                src="/SYNERGY logo.png"
+                src={BRAND_WORDMARK_LIGHT}
                 alt={`${siteContent.branding.company_name} logo`}
                 className="brand-wordmark-image careers-brand-desktop"
                 decoding="async"
               />
               <img
-                src="/SYNERGY logo.png"
+                src={BRAND_WORDMARK_LIGHT}
                 alt={`${siteContent.branding.company_name} logo`}
                 className="brand-wordmark-image careers-brand-mobile"
                 decoding="async"
@@ -3369,7 +3389,7 @@ function App() {
         <header className={`top-nav top-nav-global return-visible returning-header careers-return-header mobile-header-spaced ${showReturnHeader ? '' : 'scroll-hidden'}`}>
           <div className="nav-bubble">
             <a className="brand" href="/">
-              <img src="/SYNERGY logo.png" alt="Synergy Project Management logo" className="brand-wordmark-image" decoding="async" />
+              <img src={BRAND_WORDMARK_LIGHT} alt="Synergy Project Management logo" className="brand-wordmark-image" decoding="async" />
             </a>
             <nav className="menu">
               <a href="/" className={navClass('#home')}>Home</a>
@@ -3401,13 +3421,13 @@ function App() {
           <div className="nav-bubble">
             <a className="brand" href="/">
               <img
-                src="/SYNERGY logo.png"
+                src={BRAND_WORDMARK_LIGHT}
                 alt={`${siteContent.branding.company_name} logo`}
                 className="brand-wordmark-image careers-brand-desktop"
                 decoding="async"
               />
               <img
-                src="/SYNERGY logo.png"
+                src={BRAND_WORDMARK_LIGHT}
                 alt={`${siteContent.branding.company_name} logo`}
                 className="brand-wordmark-image careers-brand-mobile"
                 decoding="async"
@@ -3590,13 +3610,13 @@ function App() {
             <div className="nav-bubble">
               <a className="brand" href="/">
                 <img
-                  src="/SYNERGY logo.png"
+                  src={BRAND_WORDMARK}
                   alt={`${siteContent.branding.company_name} logo`}
                   className="brand-wordmark-image about-brand-desktop"
                   decoding="async"
                 />
                 <img
-                  src="/SYNERGY logo.png"
+                  src={BRAND_WORDMARK_LIGHT}
                   alt={`${siteContent.branding.company_name} logo`}
                   className="brand-wordmark-image about-brand-mobile"
                   decoding="async"
@@ -3847,7 +3867,7 @@ function App() {
         <header className="top-nav top-nav-global return-visible returning-header mobile-header-spaced">
           <div className="nav-bubble">
             <a className="brand" href="/">
-              <img src="/SYNERGY logo.png" alt="Synergy Project Management logo" className="brand-wordmark-image" decoding="async" />
+              <img src={BRAND_WORDMARK_LIGHT} alt="Synergy Project Management logo" className="brand-wordmark-image" decoding="async" />
             </a>
             <nav className="menu">
               <a href="/" className={navClass('#home')}>Home</a>
@@ -3968,7 +3988,7 @@ function App() {
               <div className="nav-bubble">
                 <a className="brand" href="/">
                   <img
-                    src="/SYNERGY logo.png"
+                    src={BRAND_WORDMARK}
                     alt={`${siteContent.branding.company_name} logo`}
                     className="brand-wordmark-image"
                     decoding="async"
@@ -4179,7 +4199,7 @@ function App() {
         <div className="sixth-inner" style={teamSectionStyle}>
           <header className="sixth-header">
             <p className="sixth-kicker">Synergy Project Management</p>
-            <h2>{siteContent.branding.team_title}</h2>
+            <h2>{formatTeamSectionHeading(siteContent.branding.team_title)}</h2>
           </header>
 
           <div className="sixth-grid">
