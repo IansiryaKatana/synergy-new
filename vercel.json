@@ -22,6 +22,18 @@
       "destination": "/index.html"
     },
     {
+      "source": "/about-us/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/projects",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/projects/:path*",
+      "destination": "/index.html"
+    },
+    {
       "source": "/services",
       "destination": "/index.html"
     },
@@ -34,7 +46,15 @@
       "destination": "/index.html"
     },
     {
+      "source": "/industries/:path*",
+      "destination": "/index.html"
+    },
+    {
       "source": "/team",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/team/:path*",
       "destination": "/index.html"
     },
     {
@@ -42,7 +62,47 @@
       "destination": "/index.html"
     },
     {
+      "source": "/careers/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/career",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/career/:path*",
+      "destination": "/index.html"
+    },
+    {
       "source": "/contact-us",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/contact-us/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/terms-of-use",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/terms-of-use/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/privacy-policy",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/privacy-policy/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/cookie-policy",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/cookie-policy/:path*",
       "destination": "/index.html"
     },
     {
