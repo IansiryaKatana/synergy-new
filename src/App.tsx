@@ -18,6 +18,7 @@ import PhoneInputLib from 'react-phone-input-2'
 import 'react-phone-input-2/lib/style.css'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { motion, useReducedMotion } from 'framer-motion'
 import type { AdminPage } from './components/AdminDashboard'
 import Noise from './components/Noise'
 import {
@@ -25,6 +26,13 @@ import {
   formatCareerSeoTitle,
   resolveJobFromCareerPathSegment,
 } from './lib/careerUrls'
+import {
+  careerCardHoverTransition,
+  careerCardTapTransition,
+  careerJobCardVariants,
+  careerListContainerVariants,
+  careerListContainerVariantsReduced,
+} from './lib/careersMotion'
 import { contentApi, type JobPost, type ServiceItem, type SiteContent, type TeamMember } from './lib/content'
 
 // Admin bundle is large and only used on /backend; keep it out of the public payload.
@@ -356,6 +364,7 @@ function NotFoundPage({ onGoHome }: { onGoHome: () => void }) {
 }
 
 function App() {
+  const prefersReducedMotion = useReducedMotion()
   const [dialogMode, setDialogMode] = useState<DialogMode>('none')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [heroProgress, setHeroProgress] = useState(0)
@@ -3357,17 +3366,33 @@ function App() {
                     </button>
                   ))}
                 </div>
-                <section className="careers-list" aria-label="Open roles">
-                  {careersHeroJobs.map((job: JobPost, index: number) => {
+                <motion.section
+                  className="careers-list"
+                  aria-label="Open roles"
+                  variants={prefersReducedMotion ? careerListContainerVariantsReduced : careerListContainerVariants}
+                  initial={prefersReducedMotion ? false : 'hidden'}
+                  animate="visible"
+                >
+                  {careersHeroJobs.map((job: JobPost) => {
                     const jobHref = `/careers/${careerSlugByJobId[job.id]}`
                     const openJobDetails = () => {
                       navigateWithTransition(jobHref)
                     }
                     return (
-                      <article
+                      <motion.article
                         key={job.id}
-                        className="career-job-card entrance-seq"
-                        style={{ '--seq': index + 4 } as CSSProperties}
+                        className="career-job-card"
+                        variants={careerJobCardVariants}
+                        initial={prefersReducedMotion ? 'static' : 'hidden'}
+                        animate="visible"
+                        whileHover={{
+                          y: -2,
+                          transition: careerCardHoverTransition,
+                        }}
+                        whileTap={{
+                          scale: 0.997,
+                          transition: careerCardTapTransition,
+                        }}
                         role="link"
                         tabIndex={0}
                         aria-label={`Open ${job.title} role details`}
@@ -3398,10 +3423,10 @@ function App() {
                         <a className="career-apply-link" href={jobHref}>
                           Apply <UpRightArrowIcon />
                         </a>
-                      </article>
+                      </motion.article>
                     )
                   })}
-                </section>
+                </motion.section>
               </>
             )}
           </div>

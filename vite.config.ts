@@ -25,6 +25,7 @@ export default defineConfig({
           }
           if (id.includes('lucide-react')) return 'vendor-icons'
           if (id.includes('noisejs')) return 'vendor-noise'
+          if (id.includes('framer-motion')) return 'vendor-motion'
           return 'vendor'
         },
       },

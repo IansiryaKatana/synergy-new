@@ -7768,6 +7768,20 @@ h1 {
   .menu a {
     transition: none;
   }
+
+  .career-job-card,
+  .career-job-card .career-job-main h2,
+  .career-job-card .career-job-main p,
+  .career-job-card .career-apply-link,
+  .career-job-card .career-meta-pill {
+    transition-duration: 0.01ms;
+  }
+
+  .entrance-seq {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
 
 ::view-transition-old(root) {
@@ -7808,6 +7822,12 @@ h1 {
   min-height: 100vh;
   padding: 1.1rem;
   background: var(--sand);
+  --careers-entrance-duration: 720ms;
+  --careers-entrance-stagger: 68ms;
+  --careers-entrance-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --career-row-hover-duration: 380ms;
+  --career-row-hover-padding-duration: 440ms;
+  --career-row-hover-ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .careers-page-panel {
@@ -7897,9 +7917,9 @@ h1 {
 
 .entrance-seq {
   opacity: 0;
-  transform: translateY(18px);
-  animation: careers-entrance 620ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  animation-delay: calc(var(--seq, 1) * 80ms);
+  transform: translateY(16px);
+  animation: careers-entrance var(--careers-entrance-duration, 720ms) var(--careers-entrance-ease, cubic-bezier(0.22, 1, 0.36, 1)) forwards;
+  animation-delay: calc(var(--seq, 1) * var(--careers-entrance-stagger, 68ms));
 }
 
 .entrance-1 { --seq: 1; }
@@ -7958,6 +7978,7 @@ h1 {
 .careers-list {
   margin-top: 1.5rem;
   border-top: 1px solid rgba(15, 31, 53, 0.22);
+  overflow: visible;
 }
 
 .career-job-card {
@@ -7967,16 +7988,66 @@ h1 {
   padding: 1.45rem 0;
   border-bottom: 1px solid rgba(15, 31, 53, 0.2);
   cursor: pointer;
-  transition: background-color 0.18s ease;
+  transition:
+    background-color var(--career-row-hover-duration, 380ms) var(--career-row-hover-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+    padding-inline var(--career-row-hover-padding-duration, 440ms) var(--career-row-hover-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+    border-bottom-color var(--career-row-hover-duration, 380ms) var(--career-row-hover-ease, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
-.career-job-card:hover {
-  background: rgba(13, 27, 52, 0.04);
+.career-job-card .career-job-main h2,
+.career-job-card .career-job-main p,
+.career-job-card .career-apply-link,
+.career-job-card .career-meta-pill {
+  transition:
+    color var(--career-row-hover-duration, 380ms) var(--career-row-hover-ease, cubic-bezier(0.22, 1, 0.36, 1)),
+    background-color var(--career-row-hover-duration, 380ms) var(--career-row-hover-ease, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.career-job-card:hover,
+.career-job-card:focus-visible {
+  background: var(--brand-blue);
+  padding-left: clamp(0.65rem, 1.8vw, 1.25rem);
+  padding-right: clamp(0.65rem, 1.8vw, 1.25rem);
+  border-bottom-color: rgba(255, 255, 255, 0.22);
 }
 
 .career-job-card:focus-visible {
-  outline: 2px solid rgba(13, 27, 52, 0.48);
-  outline-offset: 4px;
+  outline: 2px solid rgba(255, 255, 255, 0.92);
+  outline-offset: 3px;
+}
+
+.career-job-card:hover .career-job-main h2,
+.career-job-card:focus-visible .career-job-main h2 {
+  color: #fff;
+}
+
+.career-job-card:hover .career-job-main p,
+.career-job-card:focus-visible .career-job-main p {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.career-job-card:hover .career-apply-link,
+.career-job-card:focus-visible .career-apply-link {
+  color: #fff;
+  text-decoration: none;
+}
+
+.career-job-card:hover .career-meta-pill-location,
+.career-job-card:focus-visible .career-meta-pill-location {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.career-job-card:hover .career-meta-pill-employment,
+.career-job-card:focus-visible .career-meta-pill-employment {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.career-job-card:hover .career-meta-pill-employment.is-fulltime,
+.career-job-card:focus-visible .career-meta-pill-employment.is-fulltime {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
 }
 
 .career-job-main h2 {
@@ -8031,6 +8102,7 @@ h1 {
   font-size: 1.65rem;
   font-weight: 600;
   color: #0b1a33;
+  text-decoration: none;
 }
 
 .career-apply-link svg {
@@ -8411,7 +8483,7 @@ h1 {
 @keyframes careers-entrance {
   from {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
