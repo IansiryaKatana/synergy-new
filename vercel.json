@@ -22,7 +22,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/about-us/:path*",
+      "source": "/about-us/(.*)",
       "destination": "/index.html"
     },
     {
@@ -30,7 +30,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/projects/:path*",
+      "source": "/projects/(.*)",
       "destination": "/index.html"
     },
     {
@@ -38,7 +38,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/services/:path*",
+      "source": "/services/(.*)",
       "destination": "/index.html"
     },
     {
@@ -46,7 +46,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/industries/:path*",
+      "source": "/industries/(.*)",
       "destination": "/index.html"
     },
     {
@@ -54,7 +54,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/team/:path*",
+      "source": "/team/(.*)",
       "destination": "/index.html"
     },
     {
@@ -62,7 +62,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/careers/:path*",
+      "source": "/careers/(.*)",
       "destination": "/index.html"
     },
     {
@@ -70,7 +70,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/career/:path*",
+      "source": "/career/(.*)",
       "destination": "/index.html"
     },
     {
@@ -78,7 +78,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/contact-us/:path*",
+      "source": "/contact-us/(.*)",
       "destination": "/index.html"
     },
     {
@@ -86,7 +86,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/terms-of-use/:path*",
+      "source": "/terms-of-use/(.*)",
       "destination": "/index.html"
     },
     {
@@ -94,7 +94,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/privacy-policy/:path*",
+      "source": "/privacy-policy/(.*)",
       "destination": "/index.html"
     },
     {
@@ -102,7 +102,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/cookie-policy/:path*",
+      "source": "/cookie-policy/(.*)",
       "destination": "/index.html"
     },
     {
@@ -110,7 +110,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/admin/:path*",
+      "source": "/admin/(.*)",
       "destination": "/index.html"
     },
     {
@@ -118,7 +118,7 @@
       "destination": "/index.html"
     },
     {
-      "source": "/backend/:path*",
+      "source": "/backend/(.*)",
       "destination": "/index.html"
     }
   ]
