@@ -34,6 +34,7 @@ import {
   careerListContainerVariantsReduced,
 } from './lib/careersMotion'
 import { contentApi, type JobPost, type ServiceItem, type SiteContent, type TeamMember } from './lib/content'
+import { buildSupabaseHeroResponsiveImage } from './lib/supabaseImageDelivery'
 
 // Admin bundle is large and only used on /backend; keep it out of the public payload.
 const AdminDashboard = lazy(() =>
@@ -950,6 +951,38 @@ function App() {
     : Math.round((teamMobileIndex / Math.max(1, teamMembers.length - 1)) * Math.max(0, teamDotTargets.length - 1))
   const homepageHeroMediaSrc = siteContent.branding.homepage_hero_video_url?.trim() ?? ''
   const homepageHeroIsVideo = isVideoMediaSource(homepageHeroMediaSrc)
+  const homepageHeroImageDelivery = useMemo(() => {
+    if (!homepageHeroMediaSrc || homepageHeroIsVideo) return null
+    return buildSupabaseHeroResponsiveImage(homepageHeroMediaSrc)
+  }, [homepageHeroMediaSrc, homepageHeroIsVideo])
+
+  useLayoutEffect(() => {
+    if (typeof document === 'undefined') return
+    const orphan = document.getElementById('synergy-preload-home-hero')
+    if (!isHomeRoute || !homepageHeroMediaSrc || homepageHeroIsVideo) {
+      if (orphan) orphan.remove()
+      return
+    }
+    const href = homepageHeroImageDelivery?.src ?? homepageHeroMediaSrc
+    if (!href) {
+      if (orphan) orphan.remove()
+      return
+    }
+    let link = orphan as HTMLLinkElement | null
+    if (!link) {
+      link = document.createElement('link')
+      link.id = 'synergy-preload-home-hero'
+      link.rel = 'preload'
+      link.as = 'image'
+      document.head.appendChild(link)
+    }
+    link.href = href
+    link.setAttribute('fetchpriority', 'high')
+    return () => {
+      link?.remove()
+    }
+  }, [isHomeRoute, homepageHeroMediaSrc, homepageHeroIsVideo, homepageHeroImageDelivery])
+
   const homepageHeroMediaStyle = homepageHeroMediaSrc
     ? ({
         background:
@@ -4028,13 +4061,15 @@ function App() {
                     muted
                     loop
                     playsInline
-                    preload="auto"
+                    preload="metadata"
                   >
                     <source src={homepageHeroMediaSrc} />
                   </video>
                 ) : (
                   <img
-                    src={homepageHeroMediaSrc}
+                    src={homepageHeroImageDelivery?.src ?? homepageHeroMediaSrc}
+                    srcSet={homepageHeroImageDelivery?.srcSet}
+                    sizes={homepageHeroImageDelivery?.sizes ?? '100vw'}
                     alt=""
                     aria-hidden="true"
                     className="sticky-blue-wash-video"

@@ -66,6 +66,13 @@ AddDefaultCharset UTF-8
   ExpiresByType application/manifest+json     "access plus 1 week"
 </IfModule>
 
+# HSTS must be sent on HTTPS responses. Behind a TLS terminator, mod_ssl's
+# HTTPS flag is often unset while X-Forwarded-Proto is https — set HTTPS_ACTIVE.
+<IfModule mod_setenvif.c>
+  SetEnvIf HTTPS "on" HTTPS_ACTIVE=1
+  SetEnvIfNoCase X-Forwarded-Proto "^https$" HTTPS_ACTIVE=1
+</IfModule>
+
 <IfModule mod_headers.c>
   # Immutable cache for hashed build assets
   <FilesMatch "\.(?:css|js|woff2|woff|ttf|otf)$">
@@ -92,7 +99,7 @@ AddDefaultCharset UTF-8
   Header always set X-Frame-Options "SAMEORIGIN"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), interest-cohort=()"
-  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" env=HTTPS
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" env=HTTPS_ACTIVE
 
   # Remove server identification
   Header unset X-Powered-By
