@@ -343,9 +343,18 @@ function resolveCurrentRoute() {
   return hashLower && hashLower !== '#' ? hashLower : '#home'
 }
 
-const ADMIN_USERNAME = 'Hello@iankatana.com'
-const ADMIN_PASSWORD = 'B@zildog605'
+const ADMIN_USERS = [
+  { email: 'Hello@iankatana.com', password: 'P@SSword' },
+  { email: 'It@giovanni.ae', password: 'Giovanni@Admin2026' },
+] as const
 const ADMIN_AUTH_STORAGE_KEY = 'synergy_backend_auth'
+
+function isValidAdminLogin(username: string, password: string): boolean {
+  const normalizedEmail = username.trim().toLowerCase()
+  return ADMIN_USERS.some(
+    (user) => user.email.toLowerCase() === normalizedEmail && user.password === password,
+  )
+}
 
 function NotFoundPage({ onGoHome }: { onGoHome: () => void }) {
   return (
@@ -776,7 +785,7 @@ function App() {
 
   const submitBackendLogin = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (backendUsername === ADMIN_USERNAME && backendPassword === ADMIN_PASSWORD) {
+    if (isValidAdminLogin(backendUsername, backendPassword)) {
       setIsBackendAuthenticated(true)
       setBackendAuthError('')
       setBackendPassword('')
@@ -796,7 +805,7 @@ function App() {
             <p>Sign in with your admin username and password to access the backend.</p>
             <form className="backend-login-form" onSubmit={submitBackendLogin}>
               <label>
-                Username
+                Email
                 <input
                   type="email"
                   value={backendUsername}
